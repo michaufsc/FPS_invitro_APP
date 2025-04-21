@@ -7,8 +7,8 @@ import scipy.optimize as opt
 # TÍTULO PRINCIPAL
 st.markdown("""
 # 🌞 Cálculo do SPF in vitro  
-### Cálculo do SPF in vitro ajustado (SPF in vitro ajus)  
-### Determinação do coeficiente de ajuste ‘C’
+### 🌞🌞Cálculo do SPF in vitro ajustado (SPF in vitro ajus)  
+### 🌞🌞🌞Determinação do coeficiente de ajuste ‘C’
 """)
 
 # ETAPA 1: Upload do arquivo
