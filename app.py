@@ -80,7 +80,7 @@ if uploaded_file:
 
             st.success(f"🔢 Coeficiente de ajuste C: {C_adjusted:.4f}")
             st.success(f"✅ SPF in vitro ajustado: {SPF_in_vitro_adj_final:.2f}")
-            st.info(f"🎯 SPF desejado (label): {SPF_label}")
+            st.info(f"🎯 SPF rotulado in vivo (label): {SPF_label}")
 
         else:
             st.error("❌ A coluna 'Absorbancia' não foi encontrada.")
