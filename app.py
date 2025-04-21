@@ -80,28 +80,3 @@ if uploaded_file:
     except Exception as e:
         st.error(f"Erro ao processar o arquivo: {e}")
 
-                if denominador != 0:
-                    spf = numerador / denominador
-                    st.subheader(f"🌞 SPF in vitro calculado: {spf:.2f}")
-                else:
-                    st.warning("⚠️ O denominador é zero. Verifique os dados.")
-            else:
-                st.error("❌ A planilha deve conter: 'Comprimento de Onda', 'E(λ)', 'I(λ)'.")
-
-            st.subheader("📊 Tabela com Transmitância")
-            st.dataframe(df)
-
-            st.subheader("📈 Gráfico: Transmitância vs Comprimento de Onda")
-            fig, ax = plt.subplots()
-            ax.plot(df['Comprimento de Onda'], df['Transmitancia'], color='blue')
-            ax.set_xlabel("Comprimento de Onda (nm)")
-            ax.set_ylabel("Transmitância")
-            ax.set_title("Transmitância vs Comprimento de Onda")
-            ax.grid()
-            st.pyplot(fig)
-
-        else:
-            st.error("❌ A coluna 'Absorbancia' não foi encontrada.")
-
-    except Exception as e:
-        st.error(f"Erro ao processar o arquivo: {e}")
