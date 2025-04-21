@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Mensagem inicial
-st.title("Cálculo do SPF In Vitro a partir de Dados Espectrais")
+st.title("🌞Cálculo do SPF In Vitro a partir de Dados Espectrais🌞")
 
 st.markdown("""
 Este aplicativo permite que o usuário envie uma planilha Excel contendo dados espectrais (Absorbância, Comprimento de Onda, E(λ) e I(λ)) para calcular a Transmitância e o SPF in vitro automaticamente.
