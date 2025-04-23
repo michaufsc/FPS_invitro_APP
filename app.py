@@ -12,11 +12,11 @@ with col2:
     st.image("download.png", width=200)  # substitua pelo nome correto do arquivo
     
 # TÍTULO PRINCIPAL
-st.markdown("""
+st.markdown(""
 # 🌞 Cálculo do SPF in vitro  
 ### 🌞🌞Cálculo do SPF in vitro ajustado (SPF in vitro ajus)  
 ### 🌞🌞🌞Determinação do coeficiente de ajuste ‘C’
-""")
+"")
 
 # ETAPA 1: Upload do arquivo
 st.markdown("### 📁 Etapa 1: Envio da planilha com dados espectrais")
