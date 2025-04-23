@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import scipy.optimize as opt
 
 # LOGOS NO TOPO
-col1, col2 = st.columns([1, 10])
+col1, col2 = st.columns([1, 1])
 with col1:
     st.image("download.jfif", width=100)  # substitua pelo nome correto do arquivo
 with col2:
