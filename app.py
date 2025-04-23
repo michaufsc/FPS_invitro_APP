@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import scipy.optimize as opt
 
 # LOGOS NO TOPO
-col1, col2 = st.columns([0.5, 0.5])
+col1, col2 = st.columns([1, 0.5])
 with col1:
-    st.image("download.jfif", width=100)  # substitua pelo nome correto do arquivo
+    st.image("download.jfif", width=200)  # substitua pelo nome correto do arquivo
 with col2:
     st.image("download.png", width=150)  # substitua pelo nome correto do arquivo
     
