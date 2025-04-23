@@ -10,6 +10,7 @@ with col1:
     st.image("download.jfif", width=200)  # substitua pelo nome correto do arquivo
 with col2:
     st.image("download.png", width=200)  # substitua pelo nome correto do arquivo
+
 # TÍTULO PRINCIPAL
 st.markdown("""
 # 🌞 Cálculo do SPF in vitro  
