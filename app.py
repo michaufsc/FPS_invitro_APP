@@ -7,9 +7,9 @@ import scipy.optimize as opt
 # LOGOS NO TOPO
 col1, col2 = st.columns([1, 0.5])
 with col1:
-    st.image("download.jpg", width=200)  # substitua pelo nome correto do arquivo
+    st.image("download.jpg", width=200)
 with col2:
-    st.image("download.png", width=200)  # substitua pelo nome correto do arquivo
+    st.image("download.png", width=200)
 
 # TÍTULO PRINCIPAL
 st.markdown("""
@@ -48,11 +48,10 @@ if uploaded_file:
                     st.warning("⚠️ O denominador é zero. Verifique os dados.")
             else:
                 st.error("❌ A planilha deve conter: 'Comprimento de Onda', 'E(λ)', 'I(λ)'.")
-
-            # Exibir tabela e gráfico
+            
+            # ETAPA 4: Visualização
             st.markdown("### 📊 Etapa 4: Visualização dos dados")
             st.dataframe(df)
-
             fig, ax = plt.subplots()
             ax.plot(df['Comprimento de Onda'], df['Transmitancia'], color='blue')
             ax.set_xlabel("Comprimento de Onda (nm)")
@@ -61,12 +60,12 @@ if uploaded_file:
             ax.grid()
             st.pyplot(fig)
 
-            # ETAPA 5: Ajuste do SPF in vitro (SPF in vitro ajus)
+            # ETAPA 5: Ajuste do SPF in vitro
             st.markdown("### 🔧 Etapa 5: Ajuste do SPF in vitro (SPF in vitro ajus)")
             st.info("O valor de SPF in vitro usado aqui é o que foi calculado na etapa anterior.")
 
             SPF_label = st.number_input("Insira o valor do SPF in vivo (SPF_label)", min_value=0.0, value=30.0)
-            SPF_in_vitro = spf  # Valor já calculado
+            SPF_in_vitro = spf
 
             comprimento_onda = df['Comprimento de Onda'].to_numpy()
             E = df['E(λ)'].to_numpy()
@@ -93,3 +92,42 @@ if uploaded_file:
             st.error("❌ A coluna 'Absorbancia' não foi encontrada.")
     except Exception as e:
         st.error(f"Erro ao processar o arquivo: {e}")
+
+# ETAPA 6: Cálculo do UVA-PF
+st.markdown("---")
+st.markdown("### ☀️ Etapa 6: Cálculo do UVA-PF com coeficiente C manual")
+st.warning("⚠️ Atenção: Esta etapa utiliza **outro arquivo**, diferente do anterior. Faça novo upload com as colunas 'P', 'I' e 'A_e'.")
+
+uva_file = st.file_uploader("📁 Faça o upload do arquivo com os dados para o UVA-PF (.csv)", type=["csv"], key="uva_pf_upload")
+
+if uva_file:
+    try:
+        df_uva = pd.read_csv(uva_file, delimiter=';')
+        df_uva.columns = df_uva.columns.str.strip()
+
+        df_uva['P'] = pd.to_numeric(df_uva['P'].astype(str).str.replace('\n', '').str.replace(',', '.'), errors='coerce')
+        df_uva['I'] = pd.to_numeric(df_uva['I'].astype(str).str.replace('\n', '').str.replace(',', '.'), errors='coerce')
+        df_uva['A_e'] = pd.to_numeric(df_uva['A_e'].astype(str).str.replace('\n', '').str.replace(',', '.'), errors='coerce')
+        df_uva = df_uva.dropna(subset=['P', 'I', 'A_e'])
+
+        C_manual = st.number_input("Insira o valor do coeficiente C para cálculo do UVA-PF", min_value=0.0, max_value=5.0, value=0.8, step=0.01)
+
+        d_lambda = 1  # Passo fixo de 1 nm
+        P = df_uva['P'].to_numpy()
+        I = df_uva['I'].to_numpy()
+        A_e = df_uva['A_e'].to_numpy()
+
+        numerador = np.sum(P * I * d_lambda)
+        denominador = np.sum(P * I * 10**(-A_e * C_manual) * d_lambda)
+
+        if denominador != 0:
+            uva_pf = numerador / denominador
+            st.success(f"🌿 UVA-PF calculado: {uva_pf:.2f}")
+        else:
+            st.warning("⚠️ O denominador do cálculo do UVA-PF é zero. Verifique os dados.")
+    except Exception as e:
+        st.error(f"Erro ao processar o arquivo do UVA-PF: {e}")
+
+
+         
+             
