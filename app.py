@@ -128,6 +128,5 @@ if uva_file:
     except Exception as e:
         st.error(f"Erro ao processar o arquivo do UVA-PF: {e}")
 
-
          
              
