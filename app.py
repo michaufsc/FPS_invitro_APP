@@ -61,7 +61,7 @@ if uploaded_file:
             st.pyplot(fig)
 
             # ETAPA 5: Ajuste do SPF in vitro
-            st.markdown("### 🔧 Etapa 5: Ajuste do SPF in vitro (SPF in vitro ajus)")
+            st.markdown("### 🔧 Etapa 5: Ajuste do SPF in vitro (SPF in vitro adjus)")
             st.info("O valor de SPF in vitro usado aqui é o que foi calculado na etapa anterior.")
 
             SPF_label = st.number_input("Insira o valor do SPF in vivo (SPF_label)", min_value=0.0, value=30.0)
@@ -95,7 +95,7 @@ if uploaded_file:
 
 # ETAPA 6: Cálculo do UVA-PF
 st.markdown("---")
-st.markdown("### ☀️ Etapa 6: Cálculo do UVA-PF com coeficiente C manual")
+st.markdown("### ☀️ Etapa 6: Cálculo do UVA-PF com coeficiente C (insira o valorcalculado anteriormente"))
 st.warning("⚠️ Atenção: Esta etapa utiliza **outro arquivo**, diferente do anterior. Faça novo upload com as colunas 'P', 'I' e 'A_e'.")
 
 uva_file = st.file_uploader("📁 Faça o upload do arquivo com os dados para o UVA-PF (.csv)", type=["csv"], key="uva_pf_upload")
