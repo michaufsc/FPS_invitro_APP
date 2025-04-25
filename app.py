@@ -96,7 +96,7 @@ if uploaded_file:
 # ETAPA 6: Cálculo do UVA-PF
 st.markdown("---")
 st.markdown("### ☀️ Etapa 6: Cálculo do UVA-PF com coeficiente C (insira o valor do coeficiente C calculado na etapa 5)")
-st.warning("⚠️ Atenção: Esta etapa utiliza **outro arquivo**, diferente do anterior. Faça novo upload com as colunas 'P', 'I' e 'A_e'.")
+st.warning("⚠️ Atenção: Esta etapa utiliza **outro arquivo onde os valores P e I das colunas são tabelados conforme a ISO/FDIS 24443:2011(E)**, Os valoes sãos diferente do cálculo de FPS inicial. Faça novo upload com as colunas 'P', 'I' e 'A_e'.")
 
 uva_file = st.file_uploader("📁 Faça o upload do arquivo com os dados para o UVA-PF (.csv)", type=["csv"], key="uva_pf_upload")
 
