@@ -12,8 +12,8 @@ with col2:
     st.image("download.png", width=200)
 
 st.markdown("""
-# 🌞 Ferramenta Avançada de Fotoproteção In Vitro
-Este aplicativo permite calcular **SPF in vitro (ISO 24443 ajustado), SPF pelo método de Mansur e Comprimento de Onda Crítico (CWC)** usando a **mesma amostra espectrofotométrica**, oferecendo análises complementares.
+# 🌞 Ferramenta para o cálculo matemático da Fotoproteção In Vitro
+Este aplicativo permite calcular o Fator de Proteção Solar *in vitro* (ISO 24443 ajustado), o FPS pelo método de Mansur e Comprimento de Onda Crítico (CWC)** usando a **mesmctrofotométrica**, oferecendo análises complementares.
 """)
 
 # ===================== ABAS =====================
