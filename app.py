@@ -12,14 +12,14 @@ with col2:
     st.image("download.png", width=200)
 
 st.markdown("""
-# 🌞 Cálculo de Fotoproteção In Vitro
-Ferramenta para cálculo de SPF, ajuste in vitro, método de Mansur e Comprimento de Onda Crítico.
+# 🌞 Ferramenta Avançada de Fotoproteção In Vitro
+Este aplicativo permite calcular **SPF in vitro (ISO 24443 ajustado), SPF pelo método de Mansur e Comprimento de Onda Crítico (CWC)** usando a **mesma amostra espectrofotométrica**, oferecendo análises complementares.
 """)
 
 # ===================== ABAS =====================
 tab1, tab2, tab3 = st.tabs(["ISO 24443 / Ajustado", "Mansur (1986)", "Comprimento de Onda Crítico"])
 
-# Variáveis globais
+# ===================== Variáveis globais =====================
 if "df_iso" not in st.session_state:
     st.session_state.df_iso = None
 if "spf_iso" not in st.session_state:
@@ -30,39 +30,39 @@ if "spf_iso" not in st.session_state:
 # =====================================================
 with tab1:
     st.subheader("📁 Cálculo do SPF in vitro - ISO 24443")
-    with st.expander("ℹ️ Sobre esta metodologia"):
+    with st.expander("ℹ️ Detalhes matemáticos e computacionais"):
         st.markdown("""
-        **Objetivo:** Determinar o SPF in vitro de protetores solares e ajustar os resultados para melhor
-        correspondência com o SPF in vivo usando o coeficiente C.
+**Matemática:**  
+O SPF in vitro é calculado como:
 
-        **Passos para o usuário:**
-        1. Medir a absorbância da amostra aplicada sobre substrato adequado (ex.: placa de PMMA) em comprimentos de onda de 290 a 400 nm.
-        2. Salvar os dados em Excel com colunas:
-           - `Comprimento de Onda` (nm)
-           - `Absorbancia`
-           - `E(λ)` (espectro de ação eritematosa)
-           - `I(λ)` (irradiância solar)
-        3. Fazer upload do arquivo.
-        4. Conferir tabela e gráfico de transmitância gerados.
-        5. Inserir o SPF rotulado in vivo para cálculo do coeficiente C.
-        6. Observar o SPF in vitro ajustado e o gráfico da curva.
+\[
+SPF = \frac{\sum_{\lambda} E(\lambda) \cdot I(\lambda) \cdot \Delta\lambda}{\sum_{\lambda} E(\lambda) \cdot I(\lambda) \cdot T(\lambda) \cdot \Delta\lambda}
+\]
 
-        **Referências:**
-        - ISO 24443:2011(E) – “Sun protection test methods in vitro”.
-        - Mansur, J.S., et al., 1986. *An. Bras. Dermatol.*, 61(3), pp. 121–124.
-        """)
+- \(T(\lambda) = 10^{-A(\lambda)}\) é a transmitância.  
+- \(E(\lambda)\) é o espectro de ação eritematosa.  
+- \(I(\lambda)\) é a irradiância solar espectral.  
+- \(\Delta\lambda\) é o passo entre comprimentos de onda.  
 
-    uploaded_file = st.file_uploader("Carregue o arquivo Excel (.xlsx)", type=["xlsx"], key="iso_upload")
+**Computação:**  
+- `pandas` organiza os dados do usuário.  
+- `numpy` realiza a soma ponderada (aproximação discreta da integral).  
+- `matplotlib` plota a curva de transmitância.  
+- `scipy.optimize` ajusta o coeficiente C minimizando a diferença entre SPF in vitro e SPF rotulado in vivo.
+
+**Observação:**  
+A mesma amostra usada aqui pode ser aplicada nas abas de Mansur e CWC.
+""")
+    uploaded_file = st.file_uploader("Carregue o arquivo Excel (.xlsx) com absorbância", type=["xlsx"], key="iso_upload")
     if uploaded_file:
         try:
             df = pd.read_excel(uploaded_file)
             df.columns = df.columns.str.strip()
-
             if 'Absorbancia' in df.columns:
                 df['Absorbancia'] = df['Absorbancia'].astype(float)
                 df['Transmitancia'] = 10 ** (-df['Absorbancia'])
 
-                # Cálculo SPF ISO
+                # SPF ISO
                 d_lambda = df['Comprimento de Onda'][1] - df['Comprimento de Onda'][0]
                 numerador = np.sum(df['E(λ)'] * df['I(λ)'] * d_lambda)
                 denominador = np.sum(df['E(λ)'] * df['I(λ)'] * df['Transmitancia'] * d_lambda)
@@ -70,12 +70,10 @@ with tab1:
                 if denominador != 0:
                     spf = numerador / denominador
                     st.success(f"🌞 SPF in vitro calculado: {spf:.2f}")
-
-                    # Guardar dados para uso nas outras abas
                     st.session_state.df_iso = df.copy()
                     st.session_state.spf_iso = spf
                 else:
-                    st.warning("⚠️ O denominador é zero. Verifique os dados.")
+                    st.warning("⚠️ Denominador zero. Verifique os dados.")
 
                 # Gráfico
                 fig, ax = plt.subplots()
@@ -86,10 +84,9 @@ with tab1:
                 ax.grid()
                 st.pyplot(fig)
 
-                # Ajuste de SPF
+                # Ajuste SPF
                 st.markdown("### 🔧 Ajuste do SPF in vitro")
-                SPF_label = st.number_input("Insira o SPF in vivo rotulado", min_value=0.0, value=30.0)
-                comprimento_onda = df['Comprimento de Onda'].to_numpy()
+                SPF_label = st.number_input("Insira o SPF rotulado in vivo", min_value=0.0, value=30.0)
                 E = df['E(λ)'].to_numpy()
                 I = df['I(λ)'].to_numpy()
                 A0 = df['Absorbancia'].to_numpy()
@@ -109,37 +106,40 @@ with tab1:
                 st.success(f"Coeficiente de ajuste C: {C_adjusted:.4f}")
                 st.success(f"SPF in vitro ajustado: {SPF_in_vitro_adj_final:.2f}")
             else:
-                st.error("❌ A coluna 'Absorbancia' não foi encontrada.")
+                st.error("❌ Coluna 'Absorbancia' não encontrada.")
         except Exception as e:
-            st.error(f"Erro ao processar o arquivo: {e}")
+            st.error(f"Erro ao processar arquivo: {e}")
 
 # =====================================================
 # ABA 2 - Método de Mansur (1986)
 # =====================================================
 with tab2:
-    st.subheader("📁 Cálculo do SPF - Método de Mansur (1986)")
-    with st.expander("ℹ️ Sobre esta metodologia"):
+    st.subheader("📁 SPF pelo método de Mansur (1986)")
+    with st.expander("ℹ️ Detalhes matemáticos e computacionais"):
         st.markdown("""
-        **Objetivo:** Determinar o SPF in vitro para formulações com filtros solares químicos de forma rápida.
+**Matemática:**  
 
-        **Passos para o usuário:**
-        1. Preparar a amostra em álcool (0,2 μL/mL) ou éter para filtros oleosos.
-        2. Medir absorbância entre 290 e 320 nm em intervalos de 5 nm.
-        3. Salvar os dados em Excel com colunas:
-           - `Comprimento de Onda` (nm)
-           - `Absorbancia`
-        4. Fazer upload ou usar dados da Aba 1.
-        5. O aplicativo calcula SPF automaticamente com FC = 10.
+\[
+SPF = FC \times \sum_{\lambda=290}^{320} EE(\lambda) \cdot I(\lambda) \cdot A(\lambda)
+\]
 
-        **Referências:**
-        - Mansur, J.S., et al., 1986. *An. Bras. Dermatol.*, 61(3), pp. 121–124.
-        """)
+- \(A(\lambda)\) = absorbância da amostra.  
+- \(EE(\lambda) \cdot I(\lambda)\) = fator espectral ponderado.  
+- \(FC = 10\) = fator de correção.  
 
-    use_iso = st.checkbox("Usar dados carregados na Aba 1 (ISO)")
+**Computação:**  
+- `numpy` realiza soma discreta e produtos ponderados.  
+- `pandas` filtra comprimentos de onda entre 290–320 nm automaticamente.  
+- Rápido para avaliação de filtros químicos.  
+
+**Observação:**  
+Mesma amostra da Aba 1 pode ser reutilizada.
+""")
+    use_iso = st.checkbox("Usar dados da Aba 1 (ISO)")
     if use_iso and st.session_state.df_iso is not None:
         df_mansur = st.session_state.df_iso.copy()
     else:
-        uploaded_mansur = st.file_uploader("Carregue o arquivo para Mansur (.xlsx)", type=["xlsx"], key="mansur_upload")
+        uploaded_mansur = st.file_uploader("Carregue arquivo para Mansur (.xlsx)", type=["xlsx"], key="mansur_upload")
         if uploaded_mansur:
             df_mansur = pd.read_excel(uploaded_mansur)
             df_mansur.columns = df_mansur.columns.str.strip()
@@ -160,27 +160,30 @@ with tab2:
 # ABA 3 - Comprimento de Onda Crítico (CWC)
 # =====================================================
 with tab3:
-    st.subheader("📁 Cálculo do Comprimento de Onda Crítico (CWC)")
-    with st.expander("ℹ️ Sobre esta metodologia"):
+    st.subheader("📁 Comprimento de Onda Crítico (CWC)")
+    with st.expander("ℹ️ Detalhes matemáticos e computacionais"):
         st.markdown("""
-        **Objetivo:** Determinar o comprimento de onda em que 90% da proteção UV é fornecida.
+**Matemática:**  
 
-        **Passos para o usuário:**
-        1. Usar dados de absorbância da Aba ISO ou fazer upload de arquivo separado.
-        2. Garantir que a coluna `Absorbancia` esteja presente.
-        3. O aplicativo calcula a área cumulativa e identifica o CWC.
-        4. Conferir o gráfico com a linha vertical indicando o CWC.
+\[
+CWC = \lambda \quad \text{onde} \quad \frac{\sum_{290}^{\lambda} A(\lambda) \Delta\lambda}{\sum_{290}^{400} A(\lambda) \Delta\lambda} = 0.9
+\]
 
-        **Referências:**
-        - Diffey, B.L., Robson, J., 1989. *Int J Cosmet Sci*, 11, pp. 283–292.
-        - ISO 24443:2011(E) – “Sun protection test methods in vitro”.
-        """)
+- Identifica o ponto em que 90% da área total da curva de absorbância é alcançada.  
 
-    use_iso_cwc = st.checkbox("Usar dados carregados na Aba 1 (ISO)", key="use_iso_cwc")
+**Computação:**  
+- `numpy.cumsum` calcula área cumulativa.  
+- `numpy.where` encontra índice correspondente.  
+- `matplotlib` destaca CWC no gráfico.  
+
+**Observação:**  
+Pode usar a mesma amostra da Aba 1 ou novo arquivo.
+""")
+    use_iso_cwc = st.checkbox("Usar dados da Aba 1 (ISO)", key="use_iso_cwc")
     if use_iso_cwc and st.session_state.df_iso is not None:
         df_cwc = st.session_state.df_iso.copy()
     else:
-        uploaded_cwc = st.file_uploader("Carregue o arquivo para CWC (.xlsx)", type=["xlsx"], key="cwc_upload")
+        uploaded_cwc = st.file_uploader("Carregue arquivo para CWC (.xlsx)", type=["xlsx"], key="cwc_upload")
         if uploaded_cwc:
             df_cwc = pd.read_excel(uploaded_cwc)
             df_cwc.columns = df_cwc.columns.str.strip()
@@ -205,7 +208,3 @@ with tab3:
         ax.legend()
         ax.grid()
         st.pyplot(fig)
-
-
-         
-             
