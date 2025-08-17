@@ -4,207 +4,251 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize as opt
 
-# ===================== CABEÇALHO COM LOGOS =====================
-col1, col2 = st.columns([1, 0.5])
+# ===================== CONFIGURAÇÃO INICIAL =====================
+st.set_page_config(layout="wide")
+st.title("🧪 Calculadora de Fotoproteção *In Vitro*")
+
+# ===================== CABEÇALHO =====================
+col1, col2 = st.columns([1, 0.3])
 with col1:
-    st.image("download.jpg", width=200)
+    st.image("logo_sua_empresa.png", width=200)
 with col2:
-    st.image("download.png", width=200)
+    st.image("logo_parceiro.png", width=100)
 
 st.markdown("""
-# 🌞 Ferramenta para o cálculo matemático da Fotoproteção In Vitro
-Este aplicativo permite calcular o Fator de Proteção Solar *in vitro* (ISO 24443 ajustado), o FPS pelo método de Mansur e Comprimento de Onda Crítico (CWC)** usando a **mesmctrofotométrica**, oferecendo análises complementares.
+**Ferramenta para cálculo de SPF *in vitro*, UVA-PF, CWC e métricas UVA1/Ultra-Longo UVA**, conforme:
+- ISO 24443 (2012)
+- Método de Mansur (1986)
+- COLIPA (2009)
 """)
 
-# ===================== ABAS =====================
-tab1, tab2, tab3 = st.tabs(["ISO 24443 / Ajustado", "Mansur (1986)", "Comprimento de Onda Crítico"])
+# ===================== ABAS PRINCIPAIS =====================
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "ISO 24443 (Ajustado)", 
+    "Mansur (1986)", 
+    "CWC", 
+    "UVA-PF", 
+    "UVA1 & Ultra-Longo UVA"
+])
 
-# ===================== Variáveis globais =====================
+# ===================== VARIÁVEIS GLOBAIS =====================
 if "df_iso" not in st.session_state:
     st.session_state.df_iso = None
 if "spf_iso" not in st.session_state:
     st.session_state.spf_iso = None
+if "C_ajustado" not in st.session_state:
+    st.session_state.C_ajustado = 0.8  # Valor padrão
 
 # =====================================================
-# ABA 1 - ISO 24443 / Ajustado
+# ABA 1: ISO 24443 (SPF *In Vitro* Ajustado)
 # =====================================================
 with tab1:
-    st.subheader("📁 Cálculo do SPF in vitro - ISO 24443")
-    with st.expander("ℹ️ Detalhes matemáticos e computacionais"):
-        st.markdown("""
-**Matemática:**  
-O SPF in vitro é calculado como:
+    st.subheader("📊 ISO 24443: Cálculo do SPF *In Vitro*")
+    st.markdown("""
+    **Fórmula do SPF *in vitro* (sem ajuste):**
+    \[
+    SPF = \frac{\sum_{290}^{400} E(\lambda) \cdot I(\lambda) \cdot \Delta\lambda}{\sum_{290}^{400} E(\lambda) \cdot I(\lambda) \cdot T(\lambda) \cdot \Delta\lambda}
+    \]
+    - \(T(\lambda) = 10^{-A(\lambda)}\): Transmitância.
+    - \(E(\lambda)\): Espectro de ação eritematosa (CIE 1998).
+    - \(I(\lambda)\): Irradiância solar (ISO/COLIPA).
+    - \(\Delta\lambda\): Passo entre comprimentos de onda (ex: 1 nm).
+    """)
 
-\[
-SPF = \frac{\sum_{\lambda} E(\lambda) \cdot I(\lambda) \cdot \Delta\lambda}{\sum_{\lambda} E(\lambda) \cdot I(\lambda) \cdot T(\lambda) \cdot \Delta\lambda}
-\]
+    uploaded_file = st.file_uploader("📤 Carregue o arquivo de absorbância (290–400 nm)", type=["xlsx", "csv"])
 
-- \(T(\lambda) = 10^{-A(\lambda)}\) é a transmitância.  
-- \(E(\lambda)\) é o espectro de ação eritematosa.  
-- \(I(\lambda)\) é a irradiância solar espectral.  
-- \(\Delta\lambda\) é o passo entre comprimentos de onda.  
-
-**Computação:**  
-- `pandas` organiza os dados do usuário.  
-- `numpy` realiza a soma ponderada (aproximação discreta da integral).  
-- `matplotlib` plota a curva de transmitância.  
-- `scipy.optimize` ajusta o coeficiente C minimizando a diferença entre SPF in vitro e SPF rotulado in vivo.
-
-**Observação:**  
-A mesma amostra usada aqui pode ser aplicada nas abas de Mansur e CWC.
-""")
-    uploaded_file = st.file_uploader("Carregue o arquivo Excel (.xlsx) com absorbância", type=["xlsx"], key="iso_upload")
     if uploaded_file:
         try:
-            df = pd.read_excel(uploaded_file)
+            df = pd.read_excel(uploaded_file) if uploaded_file.name.endswith('.xlsx') else pd.read_csv(uploaded_file)
             df.columns = df.columns.str.strip()
-            if 'Absorbancia' in df.columns:
-                df['Absorbancia'] = df['Absorbancia'].astype(float)
-                df['Transmitancia'] = 10 ** (-df['Absorbancia'])
+            
+            # Pré-processamento
+            df['Absorbancia'] = pd.to_numeric(df['Absorbancia'].astype(str).str.replace(',', '.'), errors='coerce')
+            df['Transmitancia'] = 10 ** (-df['Absorbancia'])
+            d_lambda = df['Comprimento de Onda'].diff().mean()  # Passo Δλ automático
 
-                # SPF ISO
-                d_lambda = df['Comprimento de Onda'][1] - df['Comprimento de Onda'][0]
-                numerador = np.sum(df['E(λ)'] * df['I(λ)'] * d_lambda)
-                denominador = np.sum(df['E(λ)'] * df['I(λ)'] * df['Transmitancia'] * d_lambda)
+            # Cálculo do SPF *in vitro* (ISO 24443)
+            numerador = np.trapz(df['E(λ)'] * df['I(λ)'], x=df['Comprimento de Onda'])
+            denominador = np.trapz(df['E(λ)'] * df['I(λ)'] * df['Transmitancia'], x=df['Comprimento de Onda'])
+            spf = numerador / denominador
 
-                if denominador != 0:
-                    spf = numerador / denominador
-                    st.success(f"🌞 SPF in vitro calculado: {spf:.2f}")
-                    st.session_state.df_iso = df.copy()
-                    st.session_state.spf_iso = spf
-                else:
-                    st.warning("⚠️ Denominador zero. Verifique os dados.")
+            st.success(f"**SPF *In Vitro* (ISO 24443):** {spf:.2f}")
+            st.session_state.df_iso = df
+            st.session_state.spf_iso = spf
 
-                # Gráfico
-                fig, ax = plt.subplots()
-                ax.plot(df['Comprimento de Onda'], df['Transmitancia'], color='blue')
-                ax.set_xlabel("Comprimento de Onda (nm)")
-                ax.set_ylabel("Transmitância")
-                ax.set_title("Transmitância vs Comprimento de Onda")
-                ax.grid()
-                st.pyplot(fig)
+            # Gráfico de Transmitância
+            fig, ax = plt.subplots()
+            ax.plot(df['Comprimento de Onda'], df['Transmitancia'], color='blue')
+            ax.set_xlabel("Comprimento de Onda (nm)")
+            ax.set_ylabel("Transmitância")
+            st.pyplot(fig)
 
-                # Ajuste SPF
-                st.markdown("### 🔧 Ajuste do SPF in vitro")
-                SPF_label = st.number_input("Insira o SPF rotulado in vivo", min_value=0.0, value=30.0)
-                E = df['E(λ)'].to_numpy()
-                I = df['I(λ)'].to_numpy()
-                A0 = df['Absorbancia'].to_numpy()
+            # Ajuste do SPF para *in vivo* (coeficiente C)
+            st.markdown("""
+            **Ajuste para SPF *in vivo*:**
+            \[
+            SPF_{\text{ajustado}} = \frac{\sum E \cdot I \cdot \Delta\lambda}{\sum E \cdot I \cdot 10^{-A \cdot C} \cdot \Delta\lambda}
+            \]
+            """)
+            spf_label = st.number_input("SPF rotulado *in vivo*:", min_value=1.0, value=30.0)
+            
+            def error(C):
+                denom_ajustado = np.trapz(df['E(λ)'] * df['I(λ)'] * 10**(-df['Absorbancia'] * C), x=df['Comprimento de Onda'])
+                return abs((numerador / denom_ajustado) - spf_label)
+            
+            result = opt.minimize_scalar(error, bounds=(0.5, 1.5), method='bounded')
+            C_ajustado = result.x
+            st.session_state.C_ajustado = C_ajustado
+            st.success(f"**Coeficiente C ajustado:** {C_ajustado:.4f}")
 
-                def spf_in_vitro_adj(C):
-                    num = np.sum(E * I * d_lambda)
-                    den = np.sum(E * I * 10**(-A0 * C) * d_lambda)
-                    return num / den
-
-                def error_function(C):
-                    return abs(spf_in_vitro_adj(C) - SPF_label)
-
-                result = opt.minimize_scalar(error_function, bounds=(0.5, 1.6), method='bounded')
-                C_adjusted = result.x
-                SPF_in_vitro_adj_final = spf_in_vitro_adj(C_adjusted)
-
-                st.success(f"Coeficiente de ajuste C: {C_adjusted:.4f}")
-                st.success(f"SPF in vitro ajustado: {SPF_in_vitro_adj_final:.2f}")
-            else:
-                st.error("❌ Coluna 'Absorbancia' não encontrada.")
         except Exception as e:
-            st.error(f"Erro ao processar arquivo: {e}")
+            st.error(f"Erro: {e}")
 
 # =====================================================
-# ABA 2 - Método de Mansur (1986)
+# ABA 2: Método de Mansur (1986) - SPF Rápido (UVB)
 # =====================================================
 with tab2:
-    st.subheader("📁 SPF pelo método de Mansur (1986)")
-    with st.expander("ℹ️ Detalhes matemáticos e computacionais"):
-        st.markdown("""
-**Matemática:**  
+    st.subheader("⚡ Método de Mansur (1986) - SPF Estimado (UVB)")
+    st.markdown("""
+    **Fórmula:**
+    \[
+    SPF = 10 \times \sum_{\lambda=290}^{320} EE(\lambda) \cdot I(\lambda) \cdot A(\lambda)
+    \]
+    - \(EE(\lambda) \cdot I(\lambda)\): Valores pré-definidos (Mansur et al., 1986).
+    - \(A(\lambda)\): Absorbância da amostra.
+    - **Atenção**: Só considera UVB (290–320 nm).
+    """)
 
-\[
-SPF = FC \times \sum_{\lambda=290}^{320} EE(\lambda) \cdot I(\lambda) \cdot A(\lambda)
-\]
-
-- \(A(\lambda)\) = absorbância da amostra.  
-- \(EE(\lambda) \cdot I(\lambda)\) = fator espectral ponderado.  
-- \(FC = 10\) = fator de correção.  
-
-**Computação:**  
-- `numpy` realiza soma discreta e produtos ponderados.  
-- `pandas` filtra comprimentos de onda entre 290–320 nm automaticamente.  
-- Rápido para avaliação de filtros químicos.  
-
-**Observação:**  
-Mesma amostra da Aba 1 pode ser reutilizada.
-""")
-    use_iso = st.checkbox("Usar dados da Aba 1 (ISO)")
-    if use_iso and st.session_state.df_iso is not None:
+    if st.session_state.df_iso is not None:
         df_mansur = st.session_state.df_iso.copy()
-    else:
-        uploaded_mansur = st.file_uploader("Carregue arquivo para Mansur (.xlsx)", type=["xlsx"], key="mansur_upload")
-        if uploaded_mansur:
-            df_mansur = pd.read_excel(uploaded_mansur)
-            df_mansur.columns = df_mansur.columns.str.strip()
-        else:
-            df_mansur = None
-
-    if df_mansur is not None:
         df_mansur = df_mansur[(df_mansur['Comprimento de Onda'] >= 290) & (df_mansur['Comprimento de Onda'] <= 320)]
-        ee_i_table = {290: 0.0150*0.134, 295:0.0817*0.134,300:0.2874*0.135,305:0.3278*0.136,310:0.1864*0.137,315:0.0839*0.138,320:0.0180*0.139}
-        df_mansur['EE_I'] = df_mansur['Comprimento de Onda'].map(ee_i_table)
-        df_mansur['Prod'] = df_mansur['EE_I'] * df_mansur['Absorbancia']
-        FC = 10
-        spf_mansur = FC * df_mansur['Prod'].sum()
-        st.success(f"🌞 SPF (Mansur): {spf_mansur:.2f}")
-        st.dataframe(df_mansur[['Comprimento de Onda','Absorbancia','EE_I','Prod']])
+        
+        # Tabela de EE*I do Mansur (1986)
+        ee_i = {
+            290: 0.0150 * 0.134, 295: 0.0817 * 0.134,
+            300: 0.2874 * 0.135, 305: 0.3278 * 0.136,
+            310: 0.1864 * 0.137, 315: 0.0839 * 0.138,
+            320: 0.0180 * 0.139
+        }
+        df_mansur['EE_I'] = df_mansur['Comprimento de Onda'].map(ee_i)
+        df_mansur['Produto'] = df_mansur['EE_I'] * df_mansur['Absorbancia']
+        spf_mansur = 10 * df_mansur['Produto'].sum()
+
+        st.success(f"**SPF (Mansur):** {spf_mansur:.2f}")
+        st.dataframe(df_mansur[['Comprimento de Onda', 'Absorbancia', 'EE_I', 'Produto']].style.format("{:.4f}"))
 
 # =====================================================
-# ABA 3 - Comprimento de Onda Crítico (CWC)
+# ABA 3: Comprimento de Onda Crítico (CWC)
 # =====================================================
 with tab3:
-    st.subheader("📁 Comprimento de Onda Crítico (CWC)")
-    with st.expander("ℹ️ Detalhes matemáticos e computacionais"):
-        st.markdown("""
-**Matemática:**  
+    st.subheader("📏 Comprimento de Onda Crítico (CWC)")
+    st.markdown("""
+    **Definição (ISO 24443):**
+    \[
+    CWC = \lambda \text{ onde } \frac{\sum_{290}^{\lambda} A(\lambda) \Delta\lambda}{\sum_{290}^{400} A(\lambda) \Delta\lambda} \geq 0.9
+    \]
+    - **CWC ≥ 370 nm** indica proteção UVA ampla.
+    """)
 
-\[
-CWC = \lambda \quad \text{onde} \quad \frac{\sum_{290}^{\lambda} A(\lambda) \Delta\lambda}{\sum_{290}^{400} A(\lambda) \Delta\lambda} = 0.9
-\]
-
-- Identifica o ponto em que 90% da área total da curva de absorbância é alcançada.  
-
-**Computação:**  
-- `numpy.cumsum` calcula área cumulativa.  
-- `numpy.where` encontra índice correspondente.  
-- `matplotlib` destaca CWC no gráfico.  
-
-**Observação:**  
-Pode usar a mesma amostra da Aba 1 ou novo arquivo.
-""")
-    use_iso_cwc = st.checkbox("Usar dados da Aba 1 (ISO)", key="use_iso_cwc")
-    if use_iso_cwc and st.session_state.df_iso is not None:
+    if st.session_state.df_iso is not None:
         df_cwc = st.session_state.df_iso.copy()
-    else:
-        uploaded_cwc = st.file_uploader("Carregue arquivo para CWC (.xlsx)", type=["xlsx"], key="cwc_upload")
-        if uploaded_cwc:
-            df_cwc = pd.read_excel(uploaded_cwc)
-            df_cwc.columns = df_cwc.columns.str.strip()
-        else:
-            df_cwc = None
-
-    if df_cwc is not None:
         df_cwc = df_cwc[(df_cwc['Comprimento de Onda'] >= 290) & (df_cwc['Comprimento de Onda'] <= 400)]
-        df_cwc['Absorbancia'] = df_cwc['Absorbancia'].astype(float)
-        d_lambda = df_cwc['Comprimento de Onda'][1] - df_cwc['Comprimento de Onda'][0]
-        area_total = np.sum(df_cwc['Absorbancia'] * d_lambda)
-        area_cum = np.cumsum(df_cwc['Absorbancia'] * d_lambda)
-        frac = area_cum / area_total
-        idx_cwc = np.where(frac >= 0.9)[0][0]
-        cwc_value = df_cwc['Comprimento de Onda'].iloc[idx_cwc]
-        st.success(f"📏 Comprimento de Onda Crítico: {cwc_value:.1f} nm")
+        area_total = np.trapz(df_cwc['Absorbancia'], x=df_cwc['Comprimento de Onda'])
+        area_cumulativa = np.cumsum(df_cwc['Absorbancia'] * np.gradient(df_cwc['Comprimento de Onda']))
+        cwc_index = np.where(area_cumulativa >= 0.9 * area_total)[0][0]
+        cwc = df_cwc['Comprimento de Onda'].iloc[cwc_index]
+
+        st.success(f"**CWC:** {cwc:.1f} nm {'✅ (≥ 370 nm)' if cwc >= 370 else '⚠️ (< 370 nm)'}")
+
+        # Gráfico
         fig, ax = plt.subplots()
         ax.plot(df_cwc['Comprimento de Onda'], df_cwc['Absorbancia'], label="Absorbância")
-        ax.axvline(cwc_value, color='red', linestyle='--', label=f"CWC = {cwc_value:.1f} nm")
+        ax.axvline(cwc, color='red', linestyle='--', label=f"CWC = {cwc:.1f} nm")
+        ax.fill_between(df_cwc['Comprimento de Onda'], 0, df_cwc['Absorbancia'], alpha=0.2)
         ax.set_xlabel("Comprimento de Onda (nm)")
         ax.set_ylabel("Absorbância")
         ax.legend()
-        ax.grid()
         st.pyplot(fig)
+
+# =====================================================
+# ABA 4: UVA-PF (Fator de Proteção UVA)
+# =====================================================
+with tab4:
+    st.subheader("🟣 UVA-PF (320–400 nm)")
+    st.markdown("""
+    **Fórmula (ISO 24443):**
+    \[
+    UVA\!-\!PF = \frac{\sum_{320}^{400} P(\lambda) \cdot I(\lambda) \cdot \Delta\lambda}{\sum_{320}^{400} P(\lambda) \cdot I(\lambda) \cdot 10^{-A(\lambda) \cdot C} \cdot \Delta\lambda}
+    \]
+    - \(P(\lambda)\): Espectro de ação UVA (COLIPA 2009).
+    - \(C\): Coeficiente ajustado da Aba 1.
+    """)
+
+    if st.session_state.df_iso is not None:
+        df_uva = st.session_state.df_iso.copy()
+        df_uva = df_uva[(df_uva['Comprimento de Onda'] >= 320) & (df_uva['Comprimento de Onda'] <= 400)]
+        d_lambda = df_uva['Comprimento de Onda'].diff().mean()
+        C = st.session_state.C_ajustado
+
+        numerador_uva = np.trapz(df_uva['P(λ)'] * df_uva['I(λ)'], x=df_uva['Comprimento de Onda'])
+        denominador_uva = np.trapz(df_uva['P(λ)'] * df_uva['I(λ)'] * 10**(-df_uva['Absorbancia'] * C), x=df_uva['Comprimento de Onda'])
+        uva_pf = numerador_uva / denominador_uva
+
+        st.success(f"**UVA-PF:** {uva_pf:.2f}")
+        if 'spf_iso' in st.session_state:
+            st.info(f"**UVA-PF/SPF:** {uva_pf / st.session_state.spf_iso:.2f} (Requisito ISO: ≥ 0.33)")
+
+# =====================================================
+# ABA 5: UVA1 & Ultra-Longo UVA (340–400 nm e 370–400 nm)
+# =====================================================
+with tab5:
+    st.subheader("🔮 UVA1 (340–400 nm) & Ultra-Longo UVA (370–400 nm)")
+    st.markdown("""
+    **Baseado no estudo de HPC Today (2024):**
+    - **UVA1-PF**: Fator de proteção na faixa 340–400 nm.
+    - **Absorbância Média (370–400 nm)**: Valores ≥ 0.8 indicam boa proteção.
+    """)
+
+    if st.session_state.df_iso is not None:
+        df = st.session_state.df_iso.copy()
+        C = st.session_state.C_ajustado
+
+        # (A) UVA1-PF (340–400 nm)
+        df_uva1 = df[(df['Comprimento de Onda'] >= 340) & (df['Comprimento de Onda'] <= 400)]
+        numer_uva1 = np.trapz(df_uva1['E(λ)'] * df_uva1['I(λ)'], x=df_uva1['Comprimento de Onda'])
+        denom_uva1 = np.trapz(df_uva1['E(λ)'] * df_uva1['I(λ)'] * 10**(-df_uva1['Absorbancia'] * C), x=df_uva1['Comprimento de Onda'])
+        uva1_pf = numer_uva1 / denom_uva1
+
+        # (B) Absorbância Média (370–400 nm)
+        df_ultra_long = df[df['Comprimento de Onda'] >= 370]
+        absorbancia_media = df_ultra_long['Absorbancia'].mean()
+
+        # Resultados
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("**UVA1-PF (340–400 nm)**", f"{uva1_pf:.2f}")
+            if 'spf_iso' in st.session_state:
+                st.metric("**UVA1-PF/SPF**", f"{uva1_pf / st.session_state.spf_iso:.2f}", 
+                          "✅ ≥ 0.7 (Proteção UVA1 Superior)" if (uva1_pf / st.session_state.spf_iso) >= 0.7 else "⚠️ < 0.7")
+        with col2:
+            st.metric("**Absorbância Média (370–400 nm)**", f"{absorbancia_media:.2f}",
+                      "✅ ≥ 0.8" if absorbancia_media >= 0.8 else "⚠️ < 0.8")
+
+        # Gráfico
+        fig, ax = plt.subplots()
+        ax.plot(df['Comprimento de Onda'], df['Absorbancia'], label="Absorbância")
+        ax.axvspan(340, 400, color='purple', alpha=0.1, label="UVA1 (340–400 nm)")
+        ax.axvspan(370, 400, color='red', alpha=0.1, label="Ultra-Longo UVA (370–400 nm)")
+        ax.set_xlabel("Comprimento de Onda (nm)")
+        ax.set_ylabel("Absorbância")
+        ax.legend()
+        st.pyplot(fig)
+
+# ===================== RODAPÉ =====================
+st.markdown("---")
+st.caption("""
+**Referências:**  
+- ISO 24443:2012 (*In vitro* UVA-PF)  
+- Mansur et al. (1986) (*Fórmula rápida para SPF*)  
+- HPC Today (2024) (*UVA1 e Ultra-Longo UVA*)  
+""")
