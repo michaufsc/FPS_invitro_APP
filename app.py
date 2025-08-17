@@ -11,7 +11,7 @@ st.title("🧪 Calculadora de Fotoproteção *In Vitro*")
 # ===================== CABEÇALHO =====================
 col1, col2 = st.columns([1, 0.3])
 with col1:
-    st.image("logo_sua_empresa.png", width=200)
+    st.image("logo.png", width=200)
 with col2:
     st.image("logo_parceiro.png", width=100)
 
