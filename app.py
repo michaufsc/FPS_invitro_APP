@@ -13,7 +13,7 @@ col1, col2 = st.columns([1, 0.3])
 with col1:
     st.image("logo.png", width=200)
 with col2:
-    st.image("logo_parceiro.png", width=100)
+    st.image("logo_ufsc.png", width=100)
 
 st.markdown("""
 **Ferramenta para cálculo de SPF *in vitro*, UVA-PF, CWC e métricas UVA1/Ultra-Longo UVA**, conforme:
