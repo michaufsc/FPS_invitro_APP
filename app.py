@@ -23,8 +23,8 @@ def carregar_imagem(caminho, largura):
 # ===================== INTERFACE =====================
 # Cabeçalho com logos
 col1, col2 = st.columns([1, 0.2])
-logo_principal = carregar_imagem("images/logo.png", 200)
-logo_parceiro = carregar_imagem("images/logo_parceiro.png", 100)
+logo_principal = carregar_imagem("logo.png", 200)
+logo_parceiro = carregar_imagem("logo_parceiro.png", 100)
 
 with col1:
     if logo_principal:
