@@ -6,6 +6,8 @@ import scipy.optimize as opt
 from PIL import Image
 import os
 from pathlib import Path
+import plotly.express as px
+import io
 
 # ===================== CONFIGURAÇÃO INICIAL =====================
 st.set_page_config(
@@ -15,15 +17,16 @@ st.set_page_config(
 )
 
 # ===================== CONSTANTES E REFERÊNCIAS =====================
-'''
-REFERÊNCIAS CIENTÍFICAS:
-1. ISO 24443:2012 - In vitro determination of sunscreen UVA protection
-2. Mansur et al. (1986) - Correlação in vitro/in vivo para SPF
-3. COLIPA (2009) - Guideline for UVA protection testing
-4. HPC Today (2024) - Métodos para UVA1 e Ultra-Longo UVA
-'''
+REFERENCIAS = """
+**Referências Científicas:**  
+1. ISO 24443:2012 - Determinação in vitro da proteção UVA de filtros solares  
+2. Mansur et al. (1986) - Correlação in vitro/in vivo para SPF  
+3. COLIPA (2009) - Guia para testes de proteção UVA  
+4. HPC Today (2024) - Métodos para UVA1 e Ultra-Longo UVA  
+"""
 
 # ===================== FUNÇÕES AUXILIARES =====================
+@st.cache_data
 def carregar_imagem(nome_arquivo, largura):
     """Carrega imagens com busca em múltiplos diretórios"""
     try:
@@ -38,28 +41,117 @@ def carregar_imagem(nome_arquivo, largura):
         st.error(f"Erro ao carregar imagem: {str(e)}")
         return None
 
+@st.cache_data
+def carregar_dados(arquivo):
+    """Carrega dados com cache para melhor performance"""
+    try:
+        if arquivo.name.endswith('.csv'):
+            return pd.read_csv(arquivo)
+        return pd.read_excel(arquivo)
+    except Exception as e:
+        st.error(f"Erro ao carregar arquivo: {str(e)}")
+        return None
+
 def validar_dados(df):
-    """Valida a estrutura do DataFrame"""
+    """Validação completa da estrutura e qualidade dos dados"""
     colunas_necessarias = {
-        'Comprimento de Onda': 'nm',
-        'Absorbancia': 'adimensional',
-        'E(λ)': 'Eritematosa (CIE 1998)',
-        'I(λ)': 'Irradiância solar (ISO/COLIPA)',
-        'P(λ)': 'Espectro UVA (COLIPA)'
+        'Comprimento de Onda': {'unidade': 'nm', 'faixa': (290, 400)},
+        'Absorbancia': {'unidade': 'UA', 'faixa': (0, 3)},
+        'E(λ)': {'unidade': 'normalizado', 'faixa': (0, 1)},
+        'I(λ)': {'unidade': 'normalizado', 'faixa': (0, 1)},
+        'P(λ)': {'unidade': 'normalizado', 'faixa': (0, 1)}
     }
     
-    for col, desc in colunas_necessarias.items():
-        if col not in df.columns:
-            st.error(f"Coluna obrigatória não encontrada: {col} ({desc})")
-            return False
+    erros = []
+    for coluna, especs in colunas_necessarias.items():
+        if coluna not in df.columns:
+            erros.append(f"Coluna obrigatória faltante: {coluna}")
+            continue
+            
+        dados_coluna = df[coluna]
+        if not np.issubdtype(dados_coluna.dtype, np.number):
+            erros.append(f"Coluna {coluna} contém valores não numéricos")
+        
+        if 'faixa' in especs:
+            if (dados_coluna.min() < especs['faixa'][0]) or (dados_coluna.max() > especs['faixa'][1]):
+                erros.append(f"Coluna {coluna} fora da faixa esperada {especs['faixa']}")
     
-    if df['Comprimento de Onda'].min() > 290 or df['Comprimento de Onda'].max() < 400:
-        st.warning("Faixa espectral incompleta (290-400 nm recomendado)")
+    if erros:
+        st.error("Erros na validação dos dados:")
+        for erro in erros:
+            st.error(f"• {erro}")
+        return False
+    
+    passo_espectral = np.mean(np.diff(df['Comprimento de Onda']))
+    if passo_espectral > 5:
+        st.warning(f"Intervalo espectral grande ({passo_espectral:.1f} nm). Recomenda-se ≤5nm para precisão")
     
     return True
 
+def plotar_espectro(df, titulo="Espectro de Absorbância"):
+    """Cria gráfico interativo com Plotly"""
+    fig = px.line(df, x='Comprimento de Onda', y='Absorbancia', 
+                 title=titulo, labels={'Absorbancia': 'Absorbância (UA)'})
+    
+    fig.add_vrect(x0=290, x1=320, fillcolor="blue", opacity=0.1, 
+                 annotation_text="UVB", line_width=0)
+    fig.add_vrect(x0=320, x1=400, fillcolor="purple", opacity=0.1, 
+                 annotation_text="UVA", line_width=0)
+    
+    fig.update_layout(
+        hovermode="x unified",
+        xaxis_title="Comprimento de Onda (nm)",
+        yaxis_title="Absorbância",
+        template="plotly_white"
+    )
+    return fig
+
+def calcular_spf(df, C=1.0, lambda_min=290, lambda_max=400):
+    """Calcula SPF para faixa espectral definida"""
+    df_faixa = df[(df['Comprimento de Onda'] >= lambda_min) & 
+                (df['Comprimento de Onda'] <= lambda_max)]
+    
+    numerador = np.trapz(df_faixa['E(λ)'] * df_faixa['I(λ)'], 
+                        x=df_faixa['Comprimento de Onda'])
+    denominador = np.trapz(df_faixa['E(λ)'] * df_faixa['I(λ)'] * 
+                         10**(-df_faixa['Absorbancia'] * C), 
+                        x=df_faixa['Comprimento de Onda'])
+    return numerador / denominador
+
+def calcular_uva_pf(df, C=1.0):
+    """Calcula UVA-PF conforme ISO 24443"""
+    df_uva = df[(df['Comprimento de Onda'] >= 320) & 
+               (df['Comprimento de Onda'] <= 400)]
+    
+    numerador = np.trapz(df_uva['P(λ)'] * df_uva['I(λ)'], 
+                        x=df_uva['Comprimento de Onda'])
+    denominador = np.trapz(df_uva['P(λ)'] * df_uva['I(λ)'] * 
+                         10**(-df_uva['Absorbancia'] * C), 
+                        x=df_uva['Comprimento de Onda'])
+    return numerador / denominador
+
+def calcular_cwc(df):
+    """Calcula Comprimento de Onda Crítico (CWC)"""
+    df_faixa = df[(df['Comprimento de Onda'] >= 290) & 
+                (df['Comprimento de Onda'] <= 400)]
+    
+    area_total = np.trapz(df_faixa['Absorbancia'], 
+                         x=df_faixa['Comprimento de Onda'])
+    area_acumulada = np.cumsum(df_faixa['Absorbancia'] * 
+                              np.gradient(df_faixa['Comprimento de Onda']))
+    
+    idx_cwc = np.where(area_acumulada >= 0.9 * area_total)[0][0]
+    return df_faixa['Comprimento de Onda'].iloc[idx_cwc]
+
+def download_excel(df_resultados):
+    """Gera arquivo Excel para download"""
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df_resultados.to_excel(writer, index=False, sheet_name='Resultados')
+    return output.getvalue()
+
 # ===================== INTERFACE PRINCIPAL =====================
-# Cabeçalho com fallback responsivo
+# Cabeçalho
 col1, col2 = st.columns([1, 0.2])
 with col1:
     logo = carregar_imagem("logo.png", 200)
@@ -71,9 +163,9 @@ with col1:
 with col2:
     logo_parceiro = carregar_imagem("logo_ufsc.png", 100)
     if logo_parceiro:
-        st.image(logo_ufsc)
+        st.image(logo_parceiro)
 
-# ===================== ABAS PRINCIPAIS =====================
+# Menu de navegação
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "ISO 24443 (SPF)", 
     "Mansur (SPF UVB)", 
@@ -91,67 +183,45 @@ with tab1:
     $$
     SPF = \frac{\int_{290}^{400} E(\lambda) \cdot I(\lambda) \, d\lambda}{\int_{290}^{400} E(\lambda) \cdot I(\lambda) \cdot 10^{-A(\lambda)} \, d\lambda}
     $$
-
-    **Ajuste para SPF in vivo:**
-    $$
-    SPF_{ajustado} = \frac{\int E \cdot I \, d\lambda}{\int E \cdot I \cdot 10^{-A \cdot C} \, d\lambda}
-    $$
     """)
     
     # Upload de dados
     arquivo = st.file_uploader("Carregue arquivo de espectros", type=["csv", "xlsx"])
     
     if arquivo:
-        try:
-            # Leitura dos dados
-            df = pd.read_csv(arquivo) if arquivo.name.endswith('.csv') else pd.read_excel(arquivo)
+        df = carregar_dados(arquivo)
+        if df is not None:
             df.columns = df.columns.str.strip()
             
-            if not validar_dados(df):
-                st.stop()
-            
-            # Pré-processamento
-            df['Transmitancia'] = 10 ** (-df['Absorbancia'])
-            delta_lambda = np.mean(np.diff(df['Comprimento de Onda']))
-            
-            # Cálculo do SPF
-            def calcular_spf(df, C=1.0):
-                numerador = np.trapz(df['E(λ)'] * df['I(λ)'], x=df['Comprimento de Onda'])
-                denominador = np.trapz(df['E(λ)'] * df['I(λ)'] * 10**(-df['Absorbancia'] * C), 
-                                    x=df['Comprimento de Onda'])
-                return numerador / denominador
-            
-            spf = calcular_spf(df)
-            st.success(f"**SPF In Vitro:** {spf:.2f}")
-            
-            # Ajuste do coeficiente C
-            st.subheader("🔧 Ajuste para SPF Rotulado")
-            spf_alvo = st.number_input("SPF Rotulado In Vivo", min_value=1.0, value=30.0, step=0.5)
-            
-            def erro(C):
-                return abs(calcular_spf(df, C) - spf_alvo)
-            
-            resultado = opt.minimize_scalar(erro, bounds=(0.5, 1.5), method='bounded')
-            C_ajustado = resultado.x
-            st.session_state.C_ajustado = C_ajustado
-            st.session_state.df_iso = df
-            
-            st.success(f"""
-            **Resultados do Ajuste:**
-            - Coeficiente C: {C_ajustado:.4f}
-            - SPF Ajustado: {calcular_spf(df, C_ajustado):.2f}
-            """)
-            
-            # Gráfico
-            fig, ax = plt.subplots(figsize=(10, 5))
-            ax.plot(df['Comprimento de Onda'], df['Absorbancia'], label='Absorbância')
-            ax.set_xlabel("Comprimento de Onda (nm)")
-            ax.set_ylabel("Absorbância")
-            ax.grid(True)
-            st.pyplot(fig)
-            
-        except Exception as e:
-            st.error(f"Erro no processamento: {str(e)}")
+            if validar_dados(df):
+                # Pré-processamento
+                df['Transmitancia'] = 10 ** (-df['Absorbancia'])
+                
+                # Cálculo inicial
+                spf_inicial = calcular_spf(df)
+                st.success(f"**SPF In Vitro:** {spf_inicial:.2f}")
+                
+                # Ajuste interativo
+                st.subheader("🔧 Ajuste para SPF Rotulado")
+                spf_alvo = st.number_input("SPF Rotulado In Vivo", 
+                                         min_value=1.0, value=30.0, step=0.5)
+                
+                def erro(C):
+                    return abs(calcular_spf(df, C) - spf_alvo)
+                
+                resultado = opt.minimize_scalar(erro, bounds=(0.5, 1.5), method='bounded')
+                C_ajustado = resultado.x
+                st.session_state.C_ajustado = C_ajustado
+                st.session_state.df = df
+                
+                st.success(f"""
+                **Resultados do Ajuste:**
+                - Coeficiente C: {C_ajustado:.4f}
+                - SPF Ajustado: {calcular_spf(df, C_ajustado):.2f}
+                """)
+                
+                # Gráfico
+                st.plotly_chart(plotar_espectro(df), use_container_width=True)
 
 # ===================== ABA 2: MÉTODO MANSUR =====================
 with tab2:
@@ -164,11 +234,12 @@ with tab2:
     $$
     """)
     
-    if 'df_iso' in st.session_state:
-        df = st.session_state.df_iso
-        df_mansur = df[(df['Comprimento de Onda'] >= 290) & (df['Comprimento de Onda'] <= 320)].copy()
+    if 'df' in st.session_state:
+        df = st.session_state.df
+        df_mansur = df[(df['Comprimento de Onda'] >= 290) & 
+                      (df['Comprimento de Onda'] <= 320)].copy()
         
-        # Tabela de coeficientes EE*I (Mansur 1986)
+        # Coeficientes EE*I (Mansur 1986)
         coeficientes = {
             290: 0.0150 * 0.134, 295: 0.0817 * 0.134,
             300: 0.2874 * 0.135, 305: 0.3278 * 0.136,
@@ -185,8 +256,6 @@ with tab2:
         # Tabela detalhada
         with st.expander("🔍 Ver detalhes do cálculo"):
             st.dataframe(df_mansur[['Comprimento de Onda', 'Absorbancia', 'EE_I', 'Contribuição']])
-    else:
-        st.warning("Carregue os dados na aba ISO 24443 primeiro")
 
 # ===================== ABA 3: CWC =====================
 with tab3:
@@ -199,17 +268,9 @@ with tab3:
     $$
     """)
     
-    if 'df_iso' in st.session_state:
-        df = st.session_state.df_iso
-        df_cwc = df[(df['Comprimento de Onda'] >= 290) & (df['Comprimento de Onda'] <= 400)].copy()
-        
-        # Cálculo das áreas
-        area_total = np.trapz(df_cwc['Absorbancia'], x=df_cwc['Comprimento de Onda'])
-        area_cumulativa = np.cumsum(df_cwc['Absorbancia'] * np.gradient(df_cwc['Comprimento de Onda']))
-        
-        # Encontrar CWC
-        idx_cwc = np.where(area_cumulativa >= 0.9 * area_total)[0][0]
-        cwc = df_cwc['Comprimento de Onda'].iloc[idx_cwc]
+    if 'df' in st.session_state:
+        df = st.session_state.df
+        cwc = calcular_cwc(df)
         
         st.success(f"""
         **Resultado:**
@@ -218,16 +279,11 @@ with tab3:
         """)
         
         # Gráfico
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.plot(df_cwc['Comprimento de Onda'], df_cwc['Absorbancia'], label='Absorbância')
-        ax.axvline(cwc, color='red', linestyle='--', label=f'CWC = {cwc:.1f} nm')
-        ax.fill_between(df_cwc['Comprimento de Onda'], 0, df_cwc['Absorbancia'], alpha=0.2)
-        ax.set_xlabel("Comprimento de Onda (nm)")
-        ax.set_ylabel("Absorbância")
-        ax.legend()
-        st.pyplot(fig)
-    else:
-        st.warning("Carregue os dados na aba ISO 24443 primeiro")
+        fig = px.line(df, x='Comprimento de Onda', y='Absorbancia')
+        fig.add_vline(x=cwc, line_dash="dash", line_color="red",
+                     annotation_text=f"CWC = {cwc:.1f} nm")
+        fig.update_layout(title="Determinação do CWC")
+        st.plotly_chart(fig, use_container_width=True)
 
 # ===================== ABA 4: UVA-PF =====================
 with tab4:
@@ -240,25 +296,17 @@ with tab4:
     $$
     """)
     
-    if 'df_iso' in st.session_state and 'C_ajustado' in st.session_state:
-        df = st.session_state.df_iso
+    if 'df' in st.session_state and 'C_ajustado' in st.session_state:
+        df = st.session_state.df
         C = st.session_state.C_ajustado
         
-        df_uva = df[(df['Comprimento de Onda'] >= 320) & (df['Comprimento de Onda'] <= 400)].copy()
-        
-        numerador = np.trapz(df_uva['P(λ)'] * df_uva['I(λ)'], x=df_uva['Comprimento de Onda'])
-        denominador = np.trapz(df_uva['P(λ)'] * df_uva['I(λ)'] * 10**(-df_uva['Absorbancia'] * C), 
-                         x=df_uva['Comprimento de Onda'])
-        uva_pf = numerador / denominador
-        
+        uva_pf = calcular_uva_pf(df, C)
         st.success(f"**UVA-PF:** {uva_pf:.2f}")
         
         # Verificação da relação UVA-PF/SPF
-        if 'spf_iso' in st.session_state:
-            relacao = uva_pf / st.session_state.spf_iso
-            st.info(f"**Relação UVA-PF/SPF:** {relacao:.2f} (Requisito: ≥0.33)")
-    else:
-        st.warning("Execute o ajuste na aba ISO 24443 primeiro")
+        spf_ajustado = calcular_spf(df, C)
+        relacao = uva_pf / spf_ajustado
+        st.info(f"**Relação UVA-PF/SPF:** {relacao:.2f} (Requisito: ≥0.33)")
 
 # ===================== ABA 5: UVA1 E ULTRA-LONGO =====================
 with tab5:
@@ -276,16 +324,12 @@ with tab5:
     $$
     """)
     
-    if 'df_iso' in st.session_state and 'C_ajustado' in st.session_state:
-        df = st.session_state.df_iso
+    if 'df' in st.session_state and 'C_ajustado' in st.session_state:
+        df = st.session_state.df
         C = st.session_state.C_ajustado
         
         # Cálculo UVA1-PF
-        df_uva1 = df[(df['Comprimento de Onda'] >= 340) & (df['Comprimento de Onda'] <= 400)]
-        num_uva1 = np.trapz(df_uva1['E(λ)'] * df_uva1['I(λ)'], x=df_uva1['Comprimento de Onda'])
-        den_uva1 = np.trapz(df_uva1['E(λ)'] * df_uva1['I(λ)'] * 10**(-df_uva1['Absorbancia'] * C), 
-                          x=df_uva1['Comprimento de Onda'])
-        uva1_pf = num_uva1 / den_uva1
+        uva1_pf = calcular_spf(df, C, 340, 400)
         
         # Cálculo absorbância média
         df_ultra = df[df['Comprimento de Onda'] >= 370]
@@ -300,36 +344,35 @@ with tab5:
             st.metric("Absorbância Média (370-400 nm)", 
                     f"{media_abs:.3f}",
                     "✅ ≥ 0.8 (Boa proteção)" if media_abs >= 0.8 else "⚠️ < 0.8")
-        
-        # Gráfico comparativo
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.plot(df['Comprimento de Onda'], df['Absorbancia'], label='Absorbância Total')
-        ax.axvspan(340, 400, color='purple', alpha=0.1, label='UVA1 (340-400 nm)')
-        ax.axvspan(370, 400, color='red', alpha=0.1, label='Ultra-Longo UVA (370-400 nm)')
-        ax.set_xlabel("Comprimento de Onda (nm)")
-        ax.set_ylabel("Absorbância")
-        ax.legend()
-        st.pyplot(fig)
-    else:
-        st.warning("Execute o ajuste na aba ISO 24443 primeiro")
 
-# ===================== RODAPÉ =====================
+# ===================== RODAPÉ E DOWNLOADS =====================
 st.markdown("---")
-st.caption("""
-**Referências Científicas:**  
-1. ISO 24443:2012 - Determination of sunscreen UVA photoprotection in vitro  
-2. Mansur, J.S. et al. (1986) - Determinação do Fator de Proteção Solar por Espectrofotometria  
-3. COLIPA (2009) - International sun protection factor (SPF) test method  
-4. HPC Today (2024) - In vitro method for UVA1, long UVA or ultra-long UVA claiming  
-""")
 
-# ===================== REQUIREMENTS.TXT =====================
-'''
-streamlit==1.32.2
-pandas==2.1.4
-numpy==1.26.3
-matplotlib==3.8.2
-scipy==1.11.4
-Pillow==10.1.0
-openpyxl==3.1.2
-'''
+if 'df' in st.session_state:
+    st.subheader("📤 Exportar Resultados")
+    
+    # Preparar dados para exportação
+    resultados = {
+        "Parâmetro": ["SPF In Vitro", "SPF Ajustado", "Coeficiente C", 
+                     "SPF Mansur", "UVA-PF", "CWC", "UVA1-PF", 
+                     "Absorbância Média (370-400nm)"],
+        "Valor": [
+            calcular_spf(st.session_state.df),
+            calcular_spf(st.session_state.df, st.session_state.get('C_ajustado', 1.0)),
+            st.session_state.get('C_ajustado', 1.0),
+            # Outros valores calculados...
+        ]
+    }
+    df_resultados = pd.DataFrame(resultados)
+    
+    # Botão de download
+    excel_data = download_excel(df_resultados)
+    st.download_button(
+        label="📥 Baixar Resultados em Excel",
+        data=excel_data,
+        file_name="resultados_fotoprotecao.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+# Referências
+st.markdown(REFERENCIAS)
