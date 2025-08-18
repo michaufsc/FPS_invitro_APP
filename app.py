@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize as opt
+from scipy.integrate import cumulative_trapezoid
 from io import BytesIO
 from fpdf import FPDF  # Para geração de relatórios PDF
 
@@ -30,8 +31,8 @@ def corrigir_absorbancia(transmitancia_amostra, transmitancia_branco):
     """Converte transmitância bruta em absorbância"""
     return -np.log10(np.array(transmitancia_amostra) / np.array(transmitancia_branco))
 
-def calcular_spf(df, C=1.0, lambda_min=290, lambda_max=320):
-    """Calcula SPF com incerteza (ISO 24443)"""
+def calcular_spf(df, C=1.0, lambda_min=290, lambda_max=400):
+    """Calcula SPF in vitro (Diffey 290-400 nm)"""
     df_faixa = df[(df['Comprimento de Onda (nm)'] >= lambda_min) & 
                  (df['Comprimento de Onda (nm)'] <= lambda_max)].copy()
     
@@ -51,7 +52,7 @@ def calcular_spf(df, C=1.0, lambda_min=290, lambda_max=320):
     return spf, np.std(spfs)
 
 def calcular_uva_pf(df, C=1.0):
-    """Calcula UVA-PF (ISO 24443)"""
+    """Calcula UVA-PF (ISO 24443, forma simplificada)"""
     df_uva = df[(df['Comprimento de Onda (nm)'] >= 320)].copy()
     num = np.trapz(df_uva['P(λ)'] * df_uva['I(λ)'], df_uva['Comprimento de Onda (nm)'])
     den = np.trapz(df_uva['P(λ)'] * df_uva['I(λ)'] * 10**(-df_uva['Absorbância'] * C), 
@@ -59,25 +60,44 @@ def calcular_uva_pf(df, C=1.0):
     return num / den
 
 def calcular_uva1_pf(df, C=1.0):
-    """Calcula UVA1-PF (340-400 nm) - HPC Today 2024"""
+    """Calcula UVA1-PF (340-400 nm)"""
     df_uva1 = df[(df['Comprimento de Onda (nm)'] >= 340)].copy()
-    return calcular_uva_pf(df_uva1, C)
+    num = np.trapz(df_uva1['P(λ)'] * df_uva1['I(λ)'], df_uva1['Comprimento de Onda (nm)'])
+    den = np.trapz(df_uva1['P(λ)'] * df_uva1['I(λ)'] * 10**(-df_uva1['Absorbância'] * C), 
+                  df_uva1['Comprimento de Onda (nm)'])
+    return num / den
 
 def calcular_cwc(df):
     """Calcula Comprimento de Onda Crítico (ISO 24443)"""
     df_faixa = df[(df['Comprimento de Onda (nm)'] >= 290) & 
                  (df['Comprimento de Onda (nm)'] <= 400)].copy()
     
-    area_total = np.trapz(df_faixa['Absorbância'], df_faixa['Comprimento de Onda (nm)'])
-    area_cum = np.cumsum(df_faixa['Absorbância'] * np.gradient(df_faixa['Comprimento de Onda (nm)']))
-    
-    idx = np.where(area_cum >= 0.9 * area_total)[0][0]
-    return df_faixa['Comprimento de Onda (nm)'].iloc[idx]
+    x = df_faixa['Comprimento de Onda (nm)'].values
+    y = df_faixa['Absorbância'].values
+
+    area_total = np.trapz(y, x)
+    area_cum = cumulative_trapezoid(y, x, initial=0)
+
+    # Ponto onde atinge 90% da área
+    alvo = 0.9 * area_total
+    idx = np.where(area_cum >= alvo)[0][0]
+
+    # Interpolação linear
+    if idx == 0:
+        return x[0]
+    frac = (alvo - area_cum[idx-1]) / (area_cum[idx] - area_cum[idx-1])
+    lambda_c = x[idx-1] + frac * (x[idx] - x[idx-1])
+    return lambda_c
 
 def calcular_mansur(df):
     """Calcula SPF pelo método de Mansur (1986)"""
     df['Contribuição'] = df['Comprimento de Onda (nm)'].map(COEF_MANSUR) * df['Absorbância']
     return 10 * df['Contribuição'].sum()
+
+def calcular_absorbancia_media(df, lmin=370, lmax=400):
+    """Calcula absorbância média em uma faixa espectral"""
+    faixa = df[(df['Comprimento de Onda (nm)'] >= lmin) & (df['Comprimento de Onda (nm)'] <= lmax)]
+    return faixa['Absorbância'].mean() if not faixa.empty else np.nan
 
 def gerar_relatorio(resultados):
     """Gera relatório em PDF"""
@@ -99,8 +119,8 @@ def gerar_relatorio(resultados):
 st.title("🔬 Plataforma Científica de Fotoproteção")
 st.markdown("""
 **Métodos disponíveis:**  
-✔ SPF (ISO 24443)  
-✔ UVA-PF  
+✔ SPF in vitro (Diffey 290–400 nm)  
+✔ UVA-PF (ISO 24443 simplificado)  
 ✔ UVA1-PF (340-400 nm)  
 ✔ CWC  
 ✔ Método Rápido (Mansur)  
@@ -138,7 +158,7 @@ if uploaded_file:
 metodo = st.selectbox(
     "Selecione o método de análise:",
     [
-        "SPF (ISO 24443)", 
+        "SPF in vitro (Diffey)", 
         "UVA-PF", 
         "UVA1-PF (340-400 nm)", 
         "CWC", 
@@ -152,11 +172,13 @@ if uploaded_file and st.button("Calcular"):
     resultados = {}
     C = 1.0
     
-    if metodo in ["SPF (ISO 24443)", "Análise Completa"]:
+    if metodo in ["SPF in vitro (Diffey)", "Análise Completa"]:
         spf_in_vivo = st.number_input("SPF in vivo conhecido (para ajuste):", value=30.0)
-        C = opt.minimize_scalar(lambda C: abs(calcular_spf(df, C)[0] - spf_in_vivo)).x
+        res = opt.minimize_scalar(lambda C: (calcular_spf(df, C)[0] - spf_in_vivo)**2,
+                                  bounds=(0.3, 2.0), method='bounded')
+        C = res.x
         spf, incerteza = calcular_spf(df, C)
-        resultados["SPF (ISO 24443)"] = f"{spf:.2f} ± {incerteza:.2f} (C={C:.3f})"
+        resultados["SPF in vitro (Diffey)"] = f"{spf:.2f} ± {incerteza:.2f} (C={C:.3f})"
     
     if metodo in ["UVA-PF", "Análise Completa"]:
         uva_pf = calcular_uva_pf(df, C)
@@ -175,9 +197,11 @@ if uploaded_file and st.button("Calcular"):
         resultados["SPF (Mansur)"] = f"{spf_mansur:.2f}"
     
     if metodo == "Análise Completa":
-        absorbancia_uva_longo = calcular_absorbancia_media(df[df['Comprimento de Onda (nm)'] >= 370])
+        absorbancia_uva_longo = calcular_absorbancia_media(df, 370, 400)
         resultados["Absorbância UVA-Longo (370-400 nm)"] = f"{absorbancia_uva_longo:.3f} {'✅' if absorbancia_uva_longo >= 0.8 else '⚠️'}"
-        resultados["Razão UVA/SPF"] = f"{(float(resultados['UVA-PF'].split()[0])/float(resultados['SPF (ISO 24443)'].split()[0])):.2f} {'✅' if (float(resultados['UVA-PF'].split()[0])/float(resultados['SPF (ISO 24443)'].split()[0])) >= 1/3 else '⚠️'}"
+        if "SPF in vitro (Diffey)" in resultados and "UVA-PF" in resultados:
+            uva_spf_ratio = float(resultados["UVA-PF"].split()[0]) / float(resultados["SPF in vitro (Diffey)"].split()[0])
+            resultados["Razão UVA/SPF"] = f"{uva_spf_ratio:.2f} {'✅' if uva_spf_ratio >= 1/3 else '⚠️'}"
 
     # Exibição dos resultados
     st.subheader("📊 Resultados")
@@ -191,9 +215,9 @@ if uploaded_file and st.button("Calcular"):
     metodos = []
     valores = []
     
-    if 'SPF (ISO 24443)' in resultados:
-        metodos.append("ISO 24443")
-        valores.append(float(resultados["SPF (ISO 24443)"].split()[0]))
+    if 'SPF in vitro (Diffey)' in resultados:
+        metodos.append("Diffey (in vitro)")
+        valores.append(float(resultados["SPF in vitro (Diffey)"].split()[0]))
     
     if 'SPF (Mansur)' in resultados:
         metodos.append("Mansur (1986)")
@@ -225,18 +249,16 @@ with st.expander("ℹ️ Instruções Detalhadas"):
     st.markdown("""
     ### 📝 Como Preparar Seus Dados
     **Formato do Excel:**
-    - **UVB (290-320 nm):**  
-      ```Comprimento de Onda (nm) | Absorbância | E(λ) | I(λ)```
-    - **UVA (320-400 nm):**  
-      ```Comprimento de Onda (nm) | Absorbância | P(λ) | I(λ)```
+    - **UVB/UVA (290-400 nm):**  
+      ```Comprimento de Onda (nm) | Absorbância | E(λ) | P(λ) | I(λ)```
     
     **Para dados brutos:**  
     Adicione colunas `Transmitância_amostra` e `Transmitância_branco`.
 
     ### 🔍 Métodos Científicos
-    1. **SPF (ISO 24443):**  
-       - Exige SPF in vivo para ajuste da constante C  
-    2. **UVA-PF:**  
+    1. **SPF in vitro (Diffey 290–400 nm):**  
+       - Ajuste de C via SPF in vivo conhecido
+    2. **UVA-PF (ISO 24443, forma simplificada):**  
        - Calculado de 320-400 nm  
     3. **UVA1-PF:**  
        - Subfaixa de 340-400 nm  
@@ -250,7 +272,8 @@ with st.expander("ℹ️ Instruções Detalhadas"):
 st.markdown("---")
 st.caption("""
 **Referências:**  
-1. ISO 24443:2012 - Determination of sunscreen UVA photoprotection in vitro  
-2. Mansur et al. (1986) - Determinação do Fator de Proteção Solar por Espectrofotometria  
-3. HPC Today (2024) - In vitro method for UVA1, long UVA or ultra-long UVA claiming  
+1. Diffey BL (1994) – When should sunscreen be reapplied? J Am Acad Dermatol.  
+2. ISO 24443:2012 – Determination of sunscreen UVA photoprotection in vitro.  
+3. Mansur et al. (1986) – Determinação do Fator de Proteção Solar por Espectrofotometria.  
+4. HPC Today (2024) – In vitro method for UVA1, long UVA or ultra-long UVA claiming.  
 """)
