@@ -160,34 +160,38 @@ if uploaded_file:
             st.write(f"**λc:** {lambda_c:.2f} nm")
 
         # ===============================
-        # Aba Análise Completa
-        # ===============================
-        with tabs[6]:
-            st.subheader("📊 Análise Completa")
-            st.write(f"**SPF:** {spf:.2f}")
-            st.write(f"**UVA-PF:** {uva_pf:.2f}")
-            st.write(f"**UVA1-PF:** {uva1_pf:.2f}")
-            st.write(f"**Absorbância UVA-Longo:** {A_uva_longo:.3f}")
-            st.write(f"**Razão UVA/SPF:** {razao:.2f}")
-            st.write(f"**λc:** {lambda_c:.2f} nm")
-           if spf_in_vivo >
-                if spf_in_vivo > 0:
-                st.write(f"**Coeficiente C:** {C:.2f}")
+# Aba Análise Completa
+# ===============================
+with tabs[6]:
+    st.subheader("📊 Análise Completa")
+    st.write(f"**SPF:** {spf:.2f}")
+    st.write(f"**UVA-PF:** {uva_pf:.2f}")
+    st.write(f"**UVA1-PF:** {uva1_pf:.2f}")
+    st.write(f"**Absorbância UVA-Longo:** {A_uva_longo:.3f}")
+    st.write(f"**Razão UVA/SPF:** {razao:.2f}")
+    st.write(f"**λc:** {lambda_c:.2f} nm")
+    
+    if spf_in_vivo > 0:
+        st.write(f"**Coeficiente C:** {C:.2f}")
 
-            # Botão para exportar resultados
-            resultados = {
-                "SPF": spf,
-                "UVA-PF": uva_pf,
-                "UVA1-PF": uva1_pf,
-                "Absorbância UVA-Longo": A_uva_longo,
-                "Razão UVA/SPF": razao,
-                "λc (nm)": lambda_c,
-                "Coeficiente C": C if spf_in_vivo > 0 else np.nan
-            }
+    # Botão para exportar resultados
+    resultados = {
+        "SPF": spf,
+        "UVA-PF": uva_pf,
+        "UVA1-PF": uva1_pf,
+        "Absorbância UVA-Longo": A_uva_longo,
+        "Razão UVA/SPF": razao,
+        "λc (nm)": lambda_c,
+        "Coeficiente C": C if spf_in_vivo > 0 else np.nan
+    }
 
-            if st.button("📥 Exportar Resultados para Excel"):
-                output = BytesIO()
-                df_result = pd.DataFrame(list(resultados.items()), columns=["Parâmetro", "Valor"])
-                df_result.to_excel(output, index=False)
-                st.download_button(label="Download Excel", data=output.getvalue(), file_name="resultados_fotoprotecao.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
+    if st.button("📥 Exportar Resultados para Excel"):
+        output = BytesIO()
+        df_result = pd.DataFrame(list(resultados.items()), columns=["Parâmetro", "Valor"])
+        df_result.to_excel(output, index=False)
+        st.download_button(
+            label="Download Excel",
+            data=output.getvalue(),
+            file_name="resultados_fotoprotecao.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
