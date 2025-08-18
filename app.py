@@ -69,9 +69,9 @@ with col1:
         st.title("🌞 Fotoproteção In Vitro")
 
 with col2:
-    logo_parceiro = carregar_imagem("logo_parceiro.png", 100)
+    logo_parceiro = carregar_imagem("logo_ufsc.png", 100)
     if logo_parceiro:
-        st.image(logo_parceiro)
+        st.image(logo_ufsc)
 
 # ===================== ABAS PRINCIPAIS =====================
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
