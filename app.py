@@ -170,7 +170,7 @@ if uploaded_file:
             st.write(f"**Absorbância UVA-Longo:** {A_uva_longo:.3f}")
             st.write(f"**Razão UVA/SPF:** {razao:.2f}")
             st.write(f"**λc:** {lambda_c:.2f} nm")
-    if spf_in_vivo >
+     if spf_in_vivo >
                 if spf_in_vivo > 0:
                 st.write(f"**Coeficiente C:** {C:.2f}")
 
