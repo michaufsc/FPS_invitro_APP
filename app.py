@@ -1,4 +1,14 @@
 import streamlit as st
+
+# Configuração da página DEVE SER A PRIMEIRA INSTRUÇÃO
+st.set_page_config(
+    page_title="Análise de Proteção Solar",
+    page_icon="🌞",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Agora os outros imports
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,15 +22,6 @@ try:
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
-    st.warning("Plotly não está instalado. Instale com: pip install plotly")
-
-# Configuração da página
-st.set_page_config(
-    page_title="Análise de Proteção Solar",
-    page_icon="🌞",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # Sistema de sessão para armazenar dados
 if 'uploaded_data' not in st.session_state:
@@ -39,45 +40,45 @@ def map_column_names(df):
     column_mapping = {}
     
     # Mapear comprimento de onda
-    wavelength_aliases = ['comprimento de onda', 'comprimento', 'wavelength', 'lambda', 'nm', 'comprimento de onda (nm)']
+    wavelength_aliases = ['comprimento de onda', 'comprimento', 'wavelength', 'lambda', 'nm', 'comprimento']
     for col in df.columns:
-        if any(alias in col.lower() for alias in wavelength_aliases):
+        lower_col = col.lower()
+        if any(alias in lower_col for alias in wavelength_aliases):
             column_mapping[col] = 'Comprimento de Onda'
             break
+    else:
+        # Se não encontrou, usa a primeira coluna como comprimento de onda
+        column_mapping[df.columns[0]] = 'Comprimento de Onda'
     
     # Mapear absorbância
-    absorbance_aliases = ['absorbancia', 'absorvancia', 'absorbância', 'absorvância', 'abs', 'a0i(λ)', 'a0i']
+    absorbance_aliases = ['absorbancia', 'absorvancia', 'absorbância', 'absorvância', 'abs', 'a0i']
     for col in df.columns:
-        if any(alias in col.lower() for alias in absorbance_aliases):
+        lower_col = col.lower()
+        if any(alias in lower_col for alias in absorbance_aliases):
             column_mapping[col] = 'A0i(λ)'
             break
+    else:
+        # Se não encontrou, tenta encontrar por padrão
+        for col in df.columns:
+            lower_col = col.lower()
+            if 'abs' in lower_col:
+                column_mapping[col] = 'A0i(λ)'
+                break
     
     # Mapear E(λ)
-    eritema_aliases = ['e(λ)', 'e(lambda)', 'eritema', 'erythema', 'e']
+    eritema_aliases = ['e(λ)', 'e(lambda)', 'eritema', 'erythema', 'e ']
     for col in df.columns:
-        if any(alias in col.lower() for alias in eritema_aliases):
+        lower_col = col.lower()
+        if any(alias in lower_col for alias in eritema_aliases):
             column_mapping[col] = 'E(λ)'
             break
     
     # Mapear I(λ)
-    intensity_aliases = ['i(λ)', 'i(lambda)', 'intensidade', 'intensity', 'i']
+    intensity_aliases = ['i(λ)', 'i(lambda)', 'intensidade', 'intensity', 'i ']
     for col in df.columns:
-        if any(alias in col.lower() for alias in intensity_aliases):
+        lower_col = col.lower()
+        if any(alias in lower_col for alias in intensity_aliases):
             column_mapping[col] = 'I(λ)'
-            break
-    
-    # Mapear P(λ) - para dados pós-irradiação
-    pigment_aliases = ['p(λ)', 'p(lambda)', 'pigmentacao', 'pigmentação', 'pigmentation', 'p']
-    for col in df.columns:
-        if any(alias in col.lower() for alias in pigment_aliases):
-            column_mapping[col] = 'P(λ)'
-            break
-    
-    # Mapear absorbância pós-irradiação
-    post_abs_aliases = ['ai(λ)', 'ai(lambda)', 'absorbancia pos', 'absorvancia pos', 'absorbância após']
-    for col in df.columns:
-        if any(alias in col.lower() for alias in post_abs_aliases):
-            column_mapping[col] = 'Ai(λ)'
             break
     
     return column_mapping
@@ -113,7 +114,7 @@ def calculate_adjusted_spf(df, C):
     return numerator / denominator
 
 def calculate_uva_pf(df, C):
-    """Calcula UVA-PF conforme Equação 3"""
+    """Calcula UVA-PF"""
     d_lambda = 1
     P = df['P(λ)'].to_numpy()
     I = df['I(λ)'].to_numpy()
@@ -126,37 +127,22 @@ def calculate_uva_pf(df, C):
         raise ValueError("Denominator cannot be zero")
     return numerator / denominator
 
-def calculate_uva_pf_i(df_post_irrad, C):
-    """Calcula UVAPF-I (340-400 nm) conforme Equação 5"""
-    mask = (df_post_irrad['Comprimento de Onda'] >= 340) & (df_post_irrad['Comprimento de Onda'] <= 400)
-    df_uva = df_post_irrad[mask].copy()
+def calculate_critical_wavelength(df):
+    """Calcula Critical Wavelength"""
+    df_uv = df[(df['Comprimento de Onda'] >= 290) & 
+              (df['Comprimento de Onda'] <= 400)].copy()
     
-    P = df_uva['P(λ)'].to_numpy()
-    I = df_uva['I(λ)'].to_numpy()
-    Ai = df_uva['Ai(λ)'].to_numpy()
-    dλ = 1
-    
-    numerator = np.sum(P * I * dλ)
-    denominator = np.sum(P * I * 10**(-Ai * C) * dλ)
-    
-    return numerator / denominator if denominator != 0 else 0
-
-def calculate_critical_wavelength(df_post):
-    """Calcula Critical Wavelength conforme Equação 7"""
-    df_uva = df_post[(df_post['Comprimento de Onda'] >= 290) & 
-                    (df_post['Comprimento de Onda'] <= 400)].copy()
-    
-    wavelengths = df_uva['Comprimento de Onda'].to_numpy()
-    absorbance = df_uva['Ai(λ)'].to_numpy()
+    wavelengths = df_uv['Comprimento de Onda'].to_numpy()
+    absorbance = df_uv['A0i(λ)'].to_numpy()
     
     total_area = np.trapz(absorbance, wavelengths)
     target_area = 0.9 * total_area
     
     cumulative_area = 0
-    for i, (wl, abs) in enumerate(zip(wavelengths, absorbance)):
+    for i, (wl, abs_val) in enumerate(zip(wavelengths, absorbance)):
         if i == 0:
             continue
-        segment_area = (abs + absorbance[i-1])/2 * (wl - wavelengths[i-1])
+        segment_area = (abs_val + absorbance[i-1])/2 * (wl - wavelengths[i-1])
         cumulative_area += segment_area
         
         if cumulative_area >= target_area:
@@ -164,31 +150,8 @@ def calculate_critical_wavelength(df_post):
     
     return 400
 
-def calculate_uva_uv_ratio(df_post):
-    """Calcula UVA-I/UV ratio conforme Equação 8"""
-    mask_uva = (df_post['Comprimento de Onda'] >= 340) & (df_post['Comprimento de Onda'] <= 400)
-    uva_area = np.trapz(df_post[mask_uva]['Ai(λ)'], df_post[mask_uva]['Comprimento de Onda'])
-    
-    mask_uv = (df_post['Comprimento de Onda'] >= 290) & (df_post['Comprimento de Onda'] <= 400)
-    uv_area = np.trapz(df_post[mask_uv]['Ai(λ)'], df_post[mask_uv]['Comprimento de Onda'])
-    
-    return (uva_area/60) / (uv_area/110)
-
-# Função alternativa para gráficos se Plotly não estiver disponível
-def create_matplotlib_figure(df, x_col, y_cols, title):
-    """Cria gráfico usando matplotlib como fallback"""
-    fig, ax = plt.subplots(figsize=(10, 6))
-    for y_col in y_cols:
-        ax.plot(df[x_col], df[y_col], label=y_col)
-    ax.set_xlabel(x_col)
-    ax.set_ylabel('Valores')
-    ax.set_title(title)
-    ax.legend()
-    ax.grid(True)
-    return fig
-
 # Função para carregar e validar dados
-def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
+def load_and_validate_data(uploaded_file):
     """Carrega e valida os dados do arquivo com mapeamento de colunas"""
     try:
         if uploaded_file.name.endswith('xlsx'):
@@ -202,16 +165,12 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
         column_mapping = map_column_names(df)
         df = df.rename(columns=column_mapping)
         
-        # Verificar colunas necessárias baseadas no tipo de dados
-        if data_type == "pre_irradiation":
-            required_cols = ['Comprimento de Onda', 'E(λ)', 'I(λ)', 'A0i(λ)']
-        else:  # post_irradiation
-            required_cols = ['Comprimento de Onda', 'P(λ)', 'I(λ)', 'Ai(λ)']
-        
         # Verificar colunas necessárias
+        required_cols = ['Comprimento de Onda', 'E(λ)', 'I(λ)', 'A0i(λ)']
         missing_cols = [col for col in required_cols if col not in df.columns]
+        
         if missing_cols:
-            raise ValueError(f"Colunas faltando: {', '.join(missing_cols)}. Colunas encontradas: {', '.join(df.columns)}")
+            raise ValueError(f"Colunas faltando após mapeamento: {', '.join(missing_cols)}")
             
         return df, None
         
@@ -233,7 +192,7 @@ with st.sidebar:
     st.image("https://via.placeholder.com/150x50/FF9900/000000?text=LOGO", width=150)
     st.title("Navegação")
     page = st.radio("Selecione a página:", 
-                   ["Dashboard", "Análise Individual", "Comparativo", "Configurações"])
+                   ["Cálculo SPF", "Análise UVA", "Métricas Avançadas", "Explicação das Equações"])
     
     st.markdown("---")
     st.info("""
@@ -243,10 +202,8 @@ with st.sidebar:
     3. Visualize os resultados
     """)
 
-# Abas principais
-tab1, tab2, tab3, tab4 = st.tabs(["Cálculo SPF", "Análise UVA-PF", "Métricas Avançadas", "📚 Explicação das Equações"])
-
-with tab1:
+# Página principal baseada na seleção
+if page == "Cálculo SPF":
     st.header("🔍 Cálculo do Fator de Proteção Solar (SPF)")
     
     # Upload do arquivo
@@ -255,7 +212,7 @@ with tab1:
                                    key="spf_upload")
     
     if uploaded_file:
-        df, error = load_and_validate_data(uploaded_file, "pre_irradiation")
+        df, error = load_and_validate_data(uploaded_file)
         
         if error:
             st.error(f"Erro ao processar arquivo: {error}")
@@ -268,7 +225,7 @@ with tab1:
             """)
         else:
             # Mostrar preview dos dados
-            st.subheader("📋 Visualização dos Dados")
+            st.subheader("📋 Dados processados (primeiras linhas)")
             st.dataframe(df.head(), use_container_width=True)
             
             # Cálculo do SPF
@@ -297,28 +254,29 @@ with tab1:
                 
                 # Visualização
                 st.subheader("📈 Visualização dos Dados")
-                if PLOTLY_AVAILABLE:
-                    fig = px.line(df, x='Comprimento de Onda', y=['A0i(λ)', 'E(λ)', 'I(λ)'],
-                                title="Dados Pré-Irradiação")
-                    st.plotly_chart(fig, use_container_width=True)
-                else:
-                    fig, ax = plt.subplots(figsize=(10, 6))
-                    ax.plot(df['Comprimento de Onda'], df['A0i(λ)'], label='Absorbância')
-                    ax.plot(df['Comprimento de Onda'], df['E(λ)'], label='E(λ)')
-                    ax.plot(df['Comprimento de Onda'], df['I(λ)'], label='I(λ)')
-                    ax.set_xlabel('Comprimento de Onda (nm)')
-                    ax.set_ylabel('Valores')
-                    ax.set_title("Dados Pré-Irradiação")
-                    ax.legend()
-                    ax.grid(True)
-                    st.pyplot(fig)
+                fig, ax = plt.subplots(figsize=(10, 6))
+                ax.plot(df['Comprimento de Onda'], df['A0i(λ)'], label='Absorbância', linewidth=2)
+                ax.plot(df['Comprimento de Onda'], df['E(λ)'], label='E(λ) - Eritema', linewidth=2)
+                ax.plot(df['Comprimento de Onda'], df['I(λ)'], label='I(λ) - Intensidade', linewidth=2)
+                ax.set_xlabel('Comprimento de Onda (nm)')
+                ax.set_ylabel('Valores')
+                ax.set_title("Dados Pré-Irradiação")
+                ax.legend()
+                ax.grid(True)
+                st.pyplot(fig)
                 
             except ValueError as e:
                 st.error(f"Erro no cálculo: {str(e)}")
 
-# ... (o restante do código das outras abas)
+elif page == "Análise UVA":
+    st.header("🌞 Análise de Proteção UVA")
+    st.info("Funcionalidade em desenvolvimento...")
 
-with tab4:
+elif page == "Métricas Avançadas":
+    st.header("🔬 Métricas Avançadas")
+    st.info("Funcionalidade em desenvolvimento...")
+
+elif page == "Explicação das Equações":
     st.header("📚 Explicação das Equações Matemáticas")
     
     st.markdown("""
@@ -340,6 +298,20 @@ with tab4:
     - $A(\lambda)$ = Absorbância da amostra
     - $\Delta\lambda$ = Intervalo entre comprimentos de onda (1 nm)
     """)
+    
+    st.markdown("""
+    ### 2. SPF Ajustado com Coeficiente C
+    """)
+    
+    st.latex(r'''
+    SPF_{\text{ajustado}} = \frac{\sum E(\lambda) \times I(\lambda) \times \Delta\lambda}
+    {\sum E(\lambda) \times I(\lambda) \times 10^{-A(\lambda) \times C} \times \Delta\lambda}
+    ''')
+    
+    st.markdown("""
+    **Onde:**
+    - $C$ = Coeficiente de ajuste que correlaciona o SPF in vitro com o SPF in vivo
+    """)
 
 # Rodapé
 st.markdown("---")
@@ -347,3 +319,7 @@ st.markdown("""
 **Desenvolvido para análise de proteção solar**  
 *Sistema compatível com diversos formatos de dados*
 """)
+
+# Avisos de dependências
+if not PLOTLY_AVAILABLE:
+    st.sidebar.warning("Plotly não está instalado. Para gráficos interativos: `pip install plotly`")
