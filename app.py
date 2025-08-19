@@ -34,20 +34,20 @@ if 'uploaded_data' not in st.session_state:
 if 'analysis_history' not in st.session_state:
     st.session_state.analysis_history = []
 
-# Função para mapear nomes de colunas
+# Função para mapear nomes de colunas - CORRIGIDA
 def map_column_names(df):
     """Mapeia nomes de colunas para um formato padrão"""
     column_mapping = {}
     
-    # Mapear comprimento de onda
-    wavelength_aliases = ['comprimento de onda', 'comprimento', 'wavelength', 'lambda', 'nm', 'comprimento']
+    # Mapear comprimento de onda - CORREÇÃO PRINCIPAL
     for col in df.columns:
-        lower_col = col.lower()
-        if any(alias in lower_col for alias in wavelength_aliases):
+        lower_col = col.lower().strip()
+        # Verifica várias possibilidades
+        if any(word in lower_col for word in ['comprimento', 'onda', 'wavelength', 'lambda', 'nm']):
             column_mapping[col] = 'Comprimento de Onda'
             break
     else:
-        # Se não encontrou, usa a primeira coluna como comprimento de onda
+        # Se não encontrou, usa a primeira coluna
         column_mapping[df.columns[0]] = 'Comprimento de Onda'
     
     # Mapear absorbância
