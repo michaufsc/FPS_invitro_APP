@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize as opt
+import plotly.express as px
+import plotly.graph_objects as go
 
 # LOGOS NO TOPO
 col1, col2 = st.columns([1, 0.5])
@@ -14,7 +16,118 @@ with col2:
 # TÍTULO PRINCIPAL
 st.title("🌞 Análise Completa de Proteção Solar")
 
-# Funções de cálculo
+# Adicionar aba de explicações das equações
+tab1, tab2, tab3, tab4 = st.tabs(["Cálculo SPF", "Análise UVA-PF", "Métricas Avançadas", "📚 Explicação das Equações"])
+
+with tab4:
+    st.header("📚 Explicação das Equações Matemáticas")
+    
+    st.markdown("""
+    ## 📊 Equações Principais
+    
+    ### 1. Cálculo do SPF in vitro
+    """)
+    
+    st.latex(r'''
+    SPF = \frac{\sum_{290}^{400} E(\lambda) \times I(\lambda) \times \Delta\lambda}
+    {\sum_{290}^{400} E(\lambda) \times I(\lambda) \times T(\lambda) \times \Delta\lambda}
+    ''')
+    
+    st.markdown("""
+    **Onde:**
+    - $E(\lambda)$ = Eficiência relativa de produção de eritema em cada comprimento de onda
+    - $I(\lambda)$ = Intensidade spectral da luz solar em cada comprimento de onda  
+    - $T(\lambda)$ = Transmitância da amostra ($T = 10^{-A_{0i}(\lambda)}$)
+    - $A_{0i}(\lambda)$ = Absorbância inicial da amostra
+    - $\Delta\lambda$ = Intervalo entre comprimentos de onda (normalmente 1 nm)
+    
+    **Interpretação:** Esta equação compara a radiação solar total com a radiação que efetivamente atravessa o produto solar.
+    """)
+    
+    st.markdown("---")
+    st.markdown("### 2. SPF Ajustado com Coeficiente C")
+    
+    st.latex(r'''
+    SPF_{\text{ajustado}} = \frac{\sum_{290}^{400} E(\lambda) \times I(\lambda) \times \Delta\lambda}
+    {\sum_{290}^{400} E(\lambda) \times I(\lambda) \times 10^{-A_{0i}(\lambda) \times C} \times \Delta\lambda}
+    ''')
+    
+    st.markdown("""
+    **Onde:**
+    - $C$ = Coeficiente de ajuste que correlaciona o SPF in vitro com o SPF in vivo
+    
+    **Interpretação:** Ajusta o cálculo do SPF usando um coeficiente que torna os resultados consistentes com testes em humanos.
+    """)
+    
+    st.markdown("---")
+    st.markdown("### 3. Fator de Proteção UVA (UVA-PF)")
+    
+    st.latex(r'''
+    UVA\text{-}PF = \frac{\sum_{290}^{400} P(\lambda) \times I(\lambda) \times \Delta\lambda}
+    {\sum_{290}^{400} P(\lambda) \times I(\lambda) \times 10^{-A_{0i}(\lambda) \times C} \times \Delta\lambda}
+    ''')
+    
+    st.markdown("""
+    **Onde:**
+    - $P(\lambda)$ = Espectro de pigmentação UVA (ponderamento para radiação UVA)
+    
+    **Interpretação:** Calcula a proteção específica contra radiação UVA, que causa envelhecimento cutâneo.
+    """)
+    
+    st.markdown("---")
+    st.markdown("### 4. UVA-PF-I (após irradiação)")
+    
+    st.latex(r'''
+    UVA\text{-}PF\text{-}I = \frac{\sum_{340}^{400} P(\lambda) \times I(\lambda) \times \Delta\lambda}
+    {\sum_{340}^{400} P(\lambda) \times I(\lambda) \times 10^{-A_i(\lambda) \times C} \times \Delta\lambda}
+    ''')
+    
+    st.markdown("""
+    **Onde:**
+    - $A_i(\lambda)$ = Absorbância após irradiação (avalia a fotostabilidade)
+    
+    **Interpretação:** Mede a proteção UVA após exposição à luz, avaliando a estabilidade do produto.
+    """)
+    
+    st.markdown("---")
+    st.markdown("### 5. Comprimento de Onda Crítico (Critical Wavelength)")
+    
+    st.latex(r'''
+    \lambda_c = \min \left\{ \lambda \middle| \int_{290}^{\lambda} A(\lambda)  d\lambda \geq 0.9 \times \int_{290}^{400} A(\lambda)  d\lambda \right\}
+    ''')
+    
+    st.markdown("""
+    **Interpretação:** Identifica o comprimento de onda onde a amostra atinge 90% de sua absorbância total na região UV. 
+    Valores acima de 370 nm indicam proteção UVA adequada.
+    """)
+    
+    st.markdown("---")
+    st.markdown("### 6. Razão UVA/UV")
+    
+    st.latex(r'''
+    \text{Razão} = \frac{\left[ \int_{340}^{400} A(\lambda)  d\lambda / 60 \right]}
+    {\left[ \int_{290}^{400} A(\lambda)  d\lambda / 110 \right]}
+    ''')
+    
+    st.markdown("""
+    **Interpretação:** Compara a proteção na região UVA (340-400 nm) com a proteção total UV (290-400 nm), 
+    normalizada pela amplitude dos intervalos.
+    """)
+    
+    st.markdown("---")
+    st.markdown("""
+    ## 🎯 Significado Prático
+    
+    Estes cálculos permitem:
+    - Prever a eficácia de protetores solares sem testes em humanos
+    - Avaliar a proteção contra radiação UVA e UVB
+    - Verificar a estabilidade do produto após exposição solar
+    - Garantir conformidade com regulamentações internacionais
+    
+    **Referências:** ISO 24443:2012, FDA Broad Spectrum Test, Método COLIPA/CTFA/JCIA
+    """)
+
+# Funções de cálculo (mantidas as originais)
 def calculate_spf(df):
     """Calcula SPF in vitro conforme Equação 1"""
     d_lambda = 1
@@ -106,11 +219,24 @@ def calculate_uva_uv_ratio(df_post):
     
     return (uva_area/60) / (uv_area/110)
 
-# Criação das abas
-tab1, tab2, tab3 = st.tabs(["Cálculo SPF", "Análise UVA-PF", "Métricas Avançadas"])
-
+# Continuação das abas originais (tab1, tab2, tab3)
 with tab1:
     st.header("🔍 Cálculo do Fator de Proteção Solar (SPF)")
+    
+    # Explicação da equação do SPF
+    with st.expander("📝 Ver equação do SPF"):
+        st.latex(r'''
+        SPF = \frac{\sum_{290}^{400} E(\lambda) \times I(\lambda) \times \Delta\lambda}
+        {\sum_{290}^{400} E(\lambda) \times I(\lambda) \times T(\lambda) \times \Delta\lambda}
+        ''')
+        st.markdown("""
+        **Onde:**
+        - $E(\lambda)$ = Espectro de eritema solar
+        - $I(\lambda)$ = Intensidade spectral da luz solar
+        - $T(\lambda)$ = Transmitância ($T = 10^{-A_{0i}(\lambda)}$)
+        - $A_{0i}(\lambda)$ = Absorbância inicial
+        - $\Delta\lambda$ = Intervalo entre comprimentos de onda (1 nm)
+        """)
     
     # Upload do arquivo
     uploaded_file = st.file_uploader("Carregue dados pré-irradiação (Excel/CSV)", 
@@ -143,6 +269,17 @@ with tab1:
                     SPF_label = st.number_input("SPF rotulado (in vivo)", 
                                              min_value=1.0, value=30.0, step=0.1)
                     
+                    # Explicação do SPF ajustado
+                    with st.expander("📝 Ver equação do SPF ajustado"):
+                        st.latex(r'''
+                        SPF_{\text{ajustado}} = \frac{\sum E(\lambda) \times I(\lambda) \times \Delta\lambda}
+                        {\sum E(\lambda) \times I(\lambda) \times 10^{-A_{0i}(\lambda) \times C} \times \Delta\lambda}
+                        ''')
+                        st.markdown("""
+                        **Onde:**
+                        - $C$ = Coeficiente de ajuste que correlaciona resultados in vitro com in vivo
+                        """)
+                    
                     # Otimização para encontrar C
                     def error_function(C):
                         return abs(calculate_adjusted_spf(df, C) - SPF_label)
@@ -171,6 +308,27 @@ with tab1:
 
 with tab2:
     st.header("🌞 Análise do Fator de Proteção UVA (UVA-PF)")
+    
+    # Explicação das equações UVA
+    with st.expander("📝 Ver equações UVA"):
+        st.markdown("### UVA-PF (Equação 3)")
+        st.latex(r'''
+        UVA\text{-}PF = \frac{\sum P(\lambda) \times I(\lambda) \times \Delta\lambda}
+        {\sum P(\lambda) \times I(\lambda) \times 10^{-A_{0i}(\lambda) \times C} \times \Delta\lambda}
+        ''')
+        
+        st.markdown("### UVA-PF-I (Equação 5)")
+        st.latex(r'''
+        UVA\text{-}PF\text{-}I = \frac{\sum_{340}^{400} P(\lambda) \times I(\lambda) \times \Delta\lambda}
+        {\sum_{340}^{400} P(\lambda) \times I(\lambda) \times 10^{-A_i(\lambda) \times C} \times \Delta\lambda}
+        ''')
+        
+        st.markdown("""
+        **Onde:**
+        - $P(\lambda)$ = Espectro de pigmentação UVA
+        - $A_i(\lambda)$ = Absorbância após irradiação
+        - $C$ = Coeficiente de ajuste
+        """)
     
     # Upload dos dados pós-irradiação
     post_irrad_file = st.file_uploader("Carregue dados pós-irradiação (Excel/CSV)", 
@@ -231,6 +389,25 @@ with tab2:
 
 with tab3:
     st.header("🔬 Métricas Avançadas de Proteção UVA")
+    
+    # Explicação das métricas avançadas
+    with st.expander("📝 Ver equações das métricas avançadas"):
+        st.markdown("### Comprimento de Onda Crítico (Equação 7)")
+        st.latex(r'''
+        \lambda_c = \min \left\{ \lambda \middle| \int_{290}^{\lambda} A(\lambda)  d\lambda \geq 0.9 \times \int_{290}^{400} A(\lambda)  d\lambda \right\}
+        ''')
+        
+        st.markdown("### Razão UVA/UV (Equação 8)")
+        st.latex(r'''
+        \text{Razão} = \frac{\left[ \int_{340}^{400} A(\lambda)  d\lambda / 60 \right]}
+        {\left[ \int_{290}^{400} A(\lambda)  d\lambda / 110 \right]}
+        ''')
+        
+        st.markdown("""
+        **Interpretação:**
+        - $\lambda_c \geq 370$ nm indica boa proteção UVA
+        - Razão UVA/UV ≥ 1/3 é recomendada
+        """)
     
     if 'df_post' in globals():
         # Critical Wavelength
