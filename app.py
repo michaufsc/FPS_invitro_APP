@@ -65,20 +65,22 @@ def calculate_adjusted_spf(df, C):
     
     return total_numerator / total_denominator if total_denominator != 0 else 0
 
-def calculate_uva_pf_initial(df, C):
-    """Eq. 3: UVA-PF₀ inicial - ISO 24443:2012"""
+def calculate_uva_pf_initial(df_uva, C):
+    """Eq. 3: UVA-PF₀ inicial - ISO 24443:2012 - CORRIGIDA"""
     d_lambda = 1
     total_numerator = 0
     total_denominator = 0
     
-    for _, row in df.iterrows():
+    for _, row in df_uva.iterrows():
         wavelength = row['Comprimento de Onda']
         if wavelength < 320 or wavelength > 400:
             continue
             
-        A0 = row['A0i(λ)']
-        P = row['P(λ)']
-        I = row['I(λ)']
+        # PARA UVA-PF₀: Usamos absorbância INICIAL (A0i) mas do arquivo UVA
+        # Isso assume que o arquivo UVA também tem coluna A0i(λ)
+        A0 = row['A0i(λ)']  # Absorbância inicial
+        P = row['P(λ)']     # Espectro PPD
+        I = row['I(λ)']     # Irradiância UVA
         T_adjusted = 10 ** (-A0 * C)
         
         total_numerator += P * I * d_lambda
@@ -86,21 +88,21 @@ def calculate_uva_pf_initial(df, C):
     
     return total_numerator / total_denominator if total_denominator != 0 else 0
 
-def calculate_uva_pf_final(df_post, C):
+def calculate_uva_pf_final(df_uva, C):
     """Eq. 5: UVA-PF final após irradiação - ISO 24443:2012"""
     d_lambda = 1
     total_numerator = 0
     total_denominator = 0
     
-    for _, row in df_post.iterrows():
+    for _, row in df_uva.iterrows():
         wavelength = row['Comprimento de Onda']
         if wavelength < 320 or wavelength > 400:
             continue
             
-        Ae = row['Ai(λ)']
-        Af = Ae * C  # Absorbância ajustada: Af(λ) = Ae(λ) * C
-        P = row['P(λ)']
-        I = row['I(λ)']
+        Ae = row['Ai(λ)']  # Absorbância APÓS irradiação
+        Af = Ae * C        # Absorbância ajustada: Af(λ) = Ae(λ) * C
+        P = row['P(λ)']    # Espectro PPD
+        I = row['I(λ)']    # Irradiância UVA
         T_final = 10 ** (-Af)
         
         total_numerator += P * I * d_lambda
@@ -175,20 +177,25 @@ def map_column_names(df, data_type="pre_irradiation"):
     if data_type == "post_irradiation":
         for col in df.columns:
             lower_col = col.lower().strip()
-            if 'wavelength' in lower_col:
+            if any(word in lower_col for word in ['wavelength', 'comprimento', 'onda', 'lambda', 'nm']):
                 column_mapping[col] = 'Comprimento de Onda'
-            elif lower_col == 'p':
+            elif any(word in lower_col for word in ['p', 'ppd', 'pigment', 'pigmentacao']):
                 column_mapping[col] = 'P(λ)'
-            elif lower_col == 'i':
+            elif any(word in lower_col for word in ['i', 'intensity', 'intensidade', 'irradiance']):
                 column_mapping[col] = 'I(λ)'
-            elif lower_col in ['a_e', 'ae', 'absorbance']:
+            elif any(word in lower_col for word in ['a_e', 'ae', 'absorbance', 'absorbancia', 'absorvancia']):
                 column_mapping[col] = 'Ai(λ)'
+            elif any(word in lower_col for word in ['a0', 'absorbancia_inicial', 'absorvancia_inicial']):
+                column_mapping[col] = 'A0i(λ)'
         
+        # Garantir mapeamento por posição
         if len(column_mapping) < 4 and len(df.columns) >= 4:
-            column_mapping[df.columns[0]] = 'Comprimento de Onda'
-            column_mapping[df.columns[1]] = 'P(λ)'
-            column_mapping[df.columns[2]] = 'I(λ)'
-            column_mapping[df.columns[3]] = 'Ai(λ)'
+            column_mapping = {
+                df.columns[0]: 'Comprimento de Onda',
+                df.columns[1]: 'P(λ)',
+                df.columns[2]: 'I(λ)', 
+                df.columns[3]: 'Ai(λ)'
+            }
             
     else:
         for col in df.columns:
@@ -249,7 +256,7 @@ with st.sidebar:
     st.info("""
     **📋 Formatos esperados:**
     - **SPF:** Comprimento de Onda, E(λ), I(λ), A0i(λ)
-    - **UVA:** Comprimento de Onda, P(λ), I(λ), Ai(λ)
+    - **UVA:** Comprimento de Onda, P(λ), I(λ), Ai(λ), A0i(λ)
     """)
 
 # PÁGINA 1: ISO 24443 COMPLETO
@@ -312,7 +319,16 @@ if page == "ISO 24443 Completo":
             C_value = st.session_state.current_results['C_value']
             st.success(f"✅ Coeficiente C: {C_value:.4f}")
             
-            uploaded_file_uva = st.file_uploader("📤 Dados UVA pós-irradiação", 
+            st.info("""
+            **📝 Para UVA-PF₀ (Eq. 3), seu arquivo UVA precisa ter:**
+            - Comprimento de Onda
+            - P(λ) (espectro PPD)
+            - I(λ) (irradiância UVA)  
+            - A0i(λ) (absorbância INICIAL - mesma do SPF)
+            - Ai(λ) (absorbância APÓS irradiação)
+            """)
+            
+            uploaded_file_uva = st.file_uploader("📤 Dados UVA completos", 
                                                type=["xlsx", "csv"], key="uva_upload")
             
             if uploaded_file_uva:
@@ -324,33 +340,37 @@ if page == "ISO 24443 Completo":
                     st.success("✅ Dados UVA validados!")
                     st.dataframe(df_uva.head())
                     
-                    try:
-                        uva_pf_0 = calculate_uva_pf_initial(st.session_state.current_results['dados_pre'], C_value)
-                        dose = calculate_exposure_dose(uva_pf_0)
-                        uva_pf_final = calculate_uva_pf_final(df_uva, C_value)
-                        critical_wl = calculate_critical_wavelength(df_uva, C_value)
-                        
-                        col1, col2, col3, col4 = st.columns(4)
-                        with col1:
-                            st.metric("UVA-PF₀ (Eq. 3)", f"{uva_pf_0:.2f}")
-                        with col2:
-                            st.metric("Dose (Eq. 4)", f"{dose:.2f} J/cm²")
-                        with col3:
-                            st.metric("UVA-PF (Eq. 5)", f"{uva_pf_final:.2f}")
-                        with col4:
-                            status = "✅" if critical_wl >= 370 else "⚠️"
-                            st.metric("λ Crítico", f"{critical_wl:.1f} nm", status)
-                        
-                        st.session_state.current_results.update({
-                            'uva_pf_0': uva_pf_0,
-                            'dose': dose,
-                            'uva_pf_final': uva_pf_final,
-                            'critical_wavelength': critical_wl,
-                            'dados_post': df_uva
-                        })
-                        
-                    except Exception as e:
-                        st.error(f"Erro no cálculo UVA: {e}")
+                    # Verificar se tem A0i(λ) para UVA-PF₀
+                    if 'A0i(λ)' not in df_uva.columns:
+                        st.error("❌ Arquivo UVA precisa da coluna A0i(λ) para cálculo do UVA-PF₀")
+                    else:
+                        try:
+                            uva_pf_0 = calculate_uva_pf_initial(df_uva, C_value)
+                            dose = calculate_exposure_dose(uva_pf_0)
+                            uva_pf_final = calculate_uva_pf_final(df_uva, C_value)
+                            critical_wl = calculate_critical_wavelength(df_uva, C_value)
+                            
+                            col1, col2, col3, col4 = st.columns(4)
+                            with col1:
+                                st.metric("UVA-PF₀ (Eq. 3)", f"{uva_pf_0:.2f}")
+                            with col2:
+                                st.metric("Dose (Eq. 4)", f"{dose:.2f} J/cm²")
+                            with col3:
+                                st.metric("UVA-PF (Eq. 5)", f"{uva_pf_final:.2f}")
+                            with col4:
+                                status = "✅" if critical_wl >= 370 else "⚠️"
+                                st.metric("λ Crítico", f"{critical_wl:.1f} nm", status)
+                            
+                            st.session_state.current_results.update({
+                                'uva_pf_0': uva_pf_0,
+                                'dose': dose,
+                                'uva_pf_final': uva_pf_final,
+                                'critical_wavelength': critical_wl,
+                                'dados_post': df_uva
+                            })
+                            
+                        except Exception as e:
+                            st.error(f"Erro no cálculo UVA: {e}")
     
     with tab3:
         st.subheader("Resultados Completos")
@@ -376,10 +396,13 @@ if page == "ISO 24443 Completo":
             fig, ax = plt.subplots(figsize=(12, 6))
             ax.plot(results['dados_pre']['Comprimento de Onda'], 
                    results['dados_pre']['A0i(λ)'], 
-                   label='Absorbância Inicial', linewidth=2, color='blue')
-            ax.plot(results['dados_post']['Comprimento de Onda'], 
-                   results['dados_post']['Ai(λ)'], 
-                   label='Absorbância Final', linewidth=2, color='red')
+                   label='Absorbância Inicial (SPF)', linewidth=2, color='blue')
+            
+            if 'dados_post' in results:
+                ax.plot(results['dados_post']['Comprimento de Onda'], 
+                       results['dados_post']['Ai(λ)'], 
+                       label='Absorbância Final (UVA)', linewidth=2, color='red')
+            
             ax.set_xlabel('Comprimento de Onda (nm)')
             ax.set_ylabel('Absorbância')
             ax.legend()
