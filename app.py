@@ -35,7 +35,7 @@ def map_column_names(df, data_type="pre_irradiation"):
     # Mapear comprimento de onda
     for col in df.columns:
         lower_col = col.lower().strip()
-        if any(word in lower_col for word in ['wavelength', 'comprimento', 'onda', 'wavelength', 'lambda', 'nm']):
+        if any(word in lower_col for word in ['wavelength', 'comprimento', 'onda', 'lambda', 'nm']):
             column_mapping[col] = 'Comprimento de Onda'
             break
     else:
@@ -43,7 +43,7 @@ def map_column_names(df, data_type="pre_irradiation"):
     
     # Mapeamento baseado no tipo de dados
     if data_type == "pre_irradiation":
-        # Para dados pré-irradiação
+        # Para dados pré-irradiação (SPF)
         for col in df.columns:
             lower_col = col.lower().strip()
             if any(word in lower_col for word in ['absorbancia', 'absorvancia', 'absorbância', 'absorvância', 'abs', 'a0']):
@@ -66,19 +66,19 @@ def map_column_names(df, data_type="pre_irradiation"):
         # Para dados pós-irradiação (UVA)
         for col in df.columns:
             lower_col = col.lower().strip()
-            if any(word in lower_col for word in ['a_e','absorbancia', 'absorvancia', 'absorbância', 'absorvância', 'abs', 'a_e', 'ai']):
+            if any(word in lower_col for word in ['a_e', 'absorbancia', 'absorvancia', 'absorbância', 'absorvância', 'abs', 'ai']):
                 column_mapping[col] = 'Ai(λ)'
                 break
         
         for col in df.columns:
             lower_col = col.lower().strip()
-            if any(word in lower_col for word in ['p','p(λ)', 'p(lambda)', 'pigmentacao', 'pigmentação', 'p']):
+            if any(word in lower_col for word in ['p', 'p(λ)', 'p(lambda)', 'pigmentacao', 'pigmentação']):
                 column_mapping[col] = 'P(λ)'
                 break
         
         for col in df.columns:
             lower_col = col.lower().strip()
-            if any(word in lower_col for word in ['i(λ)', 'i(lambda)', 'intensidade', 'intensity', 'i(']):
+            if any(word in lower_col for word in ['i', 'i(λ)', 'i(lambda)', 'intensidade', 'intensity']):
                 column_mapping[col] = 'I(λ)'
                 break
     
@@ -114,7 +114,7 @@ def calculate_adjusted_spf(df, C):
         raise ValueError("Denominator cannot be zero")
     return numerator / denominator
 
-# FUNÇÃO UVA-PF (baseada no seu código)
+# FUNÇÃO UVA-PF
 def calculate_uva_pf(df, C):
     """Calcula UVA Protection Factor"""
     d_lambda = 1
@@ -133,7 +133,7 @@ def calculate_uva_pf(df, C):
     
     return numerador / denominador
 
-# Funções adicionais para UVA (placeholder - você pode implementar depois)
+# Funções adicionais para UVA
 def calculate_critical_wavelength(df):
     """Calcula Critical Wavelength"""
     df_uv = df[(df['Comprimento de Onda'] >= 290) & 
@@ -314,7 +314,7 @@ elif page == "Análise UVA":
         st.success(f"✅ Coeficiente C disponível: {C_default:.4f}")
     
     # Upload dados UVA
-    uva_file = st.file_uploader("📤 Carregue dados UVA (Excel/CSV)", 
+    uva_file = st.file_uploader("📤 Carregue dados UVA (Excel/CSV) - Colunas: wavelength, P, I, A_e", 
                               type=["xlsx", "csv"], 
                               key="uva_upload")
     
@@ -326,6 +326,15 @@ elif page == "Análise UVA":
         else:
             st.success("✅ Dados UVA processados!")
             st.dataframe(df_uva.head())
+            
+            # Mostrar mapeamento específico para o usuário
+            st.info("""
+            **📋 Mapeamento das colunas:**
+            - `wavelength` → `Comprimento de Onda`
+            - `P` → `P(λ)`
+            - `I` → `I(λ)`
+            - `A_e` → `Ai(λ)`
+            """)
             
             # Configurações UVA
             col1, col2 = st.columns(2)
@@ -372,15 +381,32 @@ elif page == "Análise UVA":
                         # Gráfico
                         st.subheader("📈 Espectro UVA")
                         fig, ax = plt.subplots(figsize=(12, 6))
-                        ax.plot(df_uva['Comprimento de Onda'], df_uva['Ai(λ)'], 
+                        
+                        # Dados UVA (320-400 nm)
+                        df_uva_region = df_uva[(df_uva['Comprimento de Onda'] >= 320) & 
+                                             (df_uva['Comprimento de Onda'] <= 400)]
+                        
+                        ax.plot(df_uva_region['Comprimento de Onda'], df_uva_region['Ai(λ)'], 
                                label='Absorbância UVA', linewidth=2, color='purple')
+                        
+                        # Marcar região UVA
+                        ax.axvspan(320, 400, alpha=0.1, color='purple', label='Região UVA (320-400 nm)')
+                        
+                        # Marcar critical wavelength
                         ax.axvline(x=critical_wl, color='red', linestyle='--', 
                                   label=f'λ Crítico = {critical_wl:.1f} nm')
+                        
                         ax.set_xlabel('Comprimento de Onda (nm)')
                         ax.set_ylabel('Absorbância')
+                        ax.set_title('Espectro de Absorbância na Região UVA')
                         ax.legend()
                         ax.grid(True, alpha=0.3)
                         st.pyplot(fig)
+                        
+                        # Salvar resultados UVA
+                        st.session_state.current_results['uva_pf'] = uva_pf
+                        st.session_state.current_results['critical_wavelength'] = critical_wl
+                        st.session_state.current_results['uva_spf_ratio'] = uva_spf_ratio
                         
                     except Exception as e:
                         st.error(f"❌ Erro no cálculo UVA: {e}")
@@ -388,42 +414,175 @@ elif page == "Análise UVA":
 elif page == "Métricas Avançadas":
     st.header("🔬 Métricas Avançadas")
     st.info("Visualização detalhada das métricas de proteção solar")
+    
+    if 'current_results' in st.session_state and 'uva_pf' in st.session_state.current_results:
+        st.subheader("📈 Métricas Calculadas")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("UVA-PF", f"{st.session_state.current_results['uva_pf']:.2f}")
+        with col2:
+            st.metric("λ Crítico", f"{st.session_state.current_results['critical_wavelength']:.1f} nm")
+        with col3:
+            st.metric("Razão UVA/SPF", f"{st.session_state.current_results['uva_spf_ratio']:.2f}")
+        
+        # Informações técnicas
+        with st.expander("📋 Informações Técnicas"):
+            st.markdown("""
+            **Critérios de Avaliação:**
+            - **λ Crítico ≥ 370 nm**: Proteção UVA adequada
+            - **UVA-PF/SPF ≥ 0.33**: Boa relação de proteção UVA/UVB
+            - **UVA-PF ≥ 10**: Proteção UVA significativa
+            
+            **Referências:**
+            - ISO 24443:2012 - Determination of sunscreen UVA photoprotection in vitro
+            - COLIPA/CTFA/JCIA: International sun protection factor test method
+            """)
+    else:
+        st.warning("⚠️ Execute a análise UVA primeiro para ver métricas avançadas")
 
 elif page == "Comparativo":
     st.header("📊 Comparativo entre Análises")
+    
     if st.session_state.analysis_history:
+        # Criar DataFrame comparativo
         comparison_data = []
         for analysis in st.session_state.analysis_history:
             comparison_data.append({
                 'Análise': analysis['name'],
                 'Data': analysis['timestamp'].strftime('%Y-%m-%d %H:%M'),
-                'SPF': analysis['data_preview']['spf'],
-                'SPF Ajustado': analysis['data_preview']['spf_adjusted'],
-                'Coeficiente C': analysis['data_preview']['C_value']
+                'SPF': f"{analysis['data_preview']['spf']:.2f}",
+                'SPF Ajustado': f"{analysis['data_preview']['spf_adjusted']:.2f}",
+                'Coeficiente C': f"{analysis['data_preview']['C_value']:.4f}",
+                'UVA-PF': f"{analysis['data_preview'].get('uva_pf', 0):.2f}" if analysis['data_preview'].get('uva_pf') else 'N/A'
             })
         
-        st.dataframe(pd.DataFrame(comparison_data))
+        df_comparison = pd.DataFrame(comparison_data)
+        st.dataframe(df_comparison, use_container_width=True)
+        
+        # Gráfico comparativo
+        if len(st.session_state.analysis_history) > 1:
+            st.subheader("📈 Comparativo Gráfico")
+            
+            fig, ax = plt.subplots(figsize=(12, 6))
+            
+            analyses = [a['name'] for a in st.session_state.analysis_history]
+            spf_values = [a['data_preview']['spf'] for a in st.session_state.analysis_history]
+            adjusted_values = [a['data_preview']['spf_adjusted'] for a in st.session_state.analysis_history]
+            
+            x = np.arange(len(analyses))
+            width = 0.35
+            
+            ax.bar(x - width/2, spf_values, width, label='SPF In Vitro', alpha=0.8, color='blue')
+            ax.bar(x + width/2, adjusted_values, width, label='SPF Ajustado', alpha=0.8, color='orange')
+            
+            ax.set_xlabel('Análises')
+            ax.set_ylabel('Valor do SPF')
+            ax.set_title('Comparação entre Análises')
+            ax.set_xticks(x)
+            ax.set_xticklabels(analyses, rotation=45, ha='right')
+            ax.legend()
+            ax.grid(True, alpha=0.3)
+            
+            plt.tight_layout()
+            st.pyplot(fig)
     else:
-        st.info("Nenhuma análise salva no histórico")
+        st.info("📝 Nenhuma análise salva no histórico. Execute análises para comparar resultados.")
 
 elif page == "Explicação das Equações":
-    st.header("📚 Explicação das Equações")
-    st.markdown("""
-    ### Cálculo do UVA-PF
-    """)
-    st.latex(r'''
-    UVA\text{-}PF = \frac{\sum P(\lambda) \times I(\lambda) \times \Delta\lambda}
-    {\sum P(\lambda) \times I(\lambda) \times 10^{-A_e(\lambda) \times C} \times \Delta\lambda}
-    ''')
-    st.markdown("""
-    **Onde:**
-    - $P(\lambda)$ = Espectro de pigmentação UVA
-    - $I(\lambda)$ = Intensidade spectral
-    - $A_e(\lambda)$ = Absorbância após irradiação
-    - $C$ = Coeficiente de ajuste
-    - $\Delta\lambda$ = Intervalo entre comprimentos de onda (1 nm)
-    """)
+    st.header("📚 Explicação das Equações Matemáticas")
+    
+    tab1, tab2, tab3 = st.tabs(["SPF", "UVA-PF", "Métricas Avançadas"])
+    
+    with tab1:
+        st.subheader("Cálculo do Fator de Proteção Solar (SPF)")
+        st.latex(r'''
+        SPF = \frac{\sum_{290}^{400} E(\lambda) \times I(\lambda) \times \Delta\lambda}
+        {\sum_{290}^{400} E(\lambda) \times I(\lambda) \times T(\lambda) \times \Delta\lambda}
+        ''')
+        st.markdown("""
+        **Onde:**
+        - $E(\lambda)$ = Eficiência relativa de produção de eritema
+        - $I(\lambda)$ = Intensidade spectral da luz solar  
+        - $T(\lambda)$ = Transmitância da amostra ($T = 10^{-A(\lambda)}$)
+        - $A(\lambda)$ = Absorbância da amostra
+        - $\Delta\lambda$ = Intervalo entre comprimentos de onda (1 nm)
+        """)
+        
+        st.subheader("SPF Ajustado com Coeficiente C")
+        st.latex(r'''
+        SPF_{\text{ajustado}} = \frac{\sum E(\lambda) \times I(\lambda) \times \Delta\lambda}
+        {\sum E(\lambda) \times I(\lambda) \times 10^{-A(\lambda) \times C} \times \Delta\lambda}
+        ''')
+        st.markdown("""
+        **Onde:**
+        - $C$ = Coeficiente de ajuste que correlaciona o SPF in vitro com o SPF in vivo
+        """)
+    
+    with tab2:
+        st.subheader("Cálculo do UVA Protection Factor (UVA-PF)")
+        st.latex(r'''
+        UVA\text{-}PF = \frac{\sum P(\lambda) \times I(\lambda) \times \Delta\lambda}
+        {\sum P(\lambda) \times I(\lambda) \times 10^{-A_e(\lambda) \times C} \times \Delta\lambda}
+        ''')
+        st.markdown("""
+        **Onde:**
+        - $P(\lambda)$ = Espectro de pigmentação UVA
+        - $I(\lambda)$ = Intensidade spectral
+        - $A_e(\lambda)$ = Absorbância após irradiação
+        - $C$ = Coeficiente de ajuste
+        - $\Delta\lambda$ = Intervalo entre comprimentos de onda (1 nm)
+        """)
+        
+        st.markdown("""
+        **Critérios de Avaliação UVA:**
+        - **UVA-PF/SPF ≥ 1/3**: Boa proteção UVA relativa
+        - **λ Crítico ≥ 370 nm**: Amplo espectro de proteção
+        """)
+    
+    with tab3:
+        st.subheader("Comprimento de Onda Crítico (λc)")
+        st.latex(r'''
+        \lambda_c = \min \left\{ \lambda \middle| \int_{290}^{\lambda} A(\lambda)  d\lambda \geq 0.9 \times \int_{290}^{400} A(\lambda)  d\lambda \right\}
+        ''')
+        st.markdown("""
+        **Interpretação:**
+        - λc ≥ 370 nm: Proteção UVA adequada (requisito regulatório)
+        - λc < 370 nm: Proteção UVA potencialmente insuficiente
+        """)
+        
+        st.subheader("Razão UVA/UV")
+        st.latex(r'''
+        \text{Razão} = \frac{\int_{320}^{400} A(\lambda)  d\lambda}
+        {\int_{290}^{400} A(\lambda)  d\lambda}
+        ''')
+        st.markdown("""
+        **Interpretação:**
+        - Mede a proporção da proteção UVA em relação à proteção UV total
+        - Valores mais altos indicam melhor proteção UVA relativa
+        """)
 
 # Rodapé
 st.markdown("---")
-st.markdown("**🔬 Sistema de Análise de Proteção Solar**")
+st.markdown("""
+**🔬 Sistema de Análise de Proteção Solar**  
+*Desenvolvido para avaliação completa de fotoproteção*
+""")
+
+# Instruções de uso
+with st.sidebar:
+    st.markdown("---")
+    with st.expander("ℹ️ Como usar"):
+        st.markdown("""
+        1. **Cálculo SPF**: 
+           - Carregue dados pré-irradiação
+           - Calcule SPF in vitro
+           - Ajuste com SPF rotulado para obter coeficiente C
+        
+        2. **Análise UVA**: 
+           - Carregue dados pós-irradiação (wavelength, P, I, A_e)
+           - Use o coeficiente C calculado
+           - Calcule UVA-PF e métricas
+        
+        3. **Verifique conformidade** com os critérios regulatórios
+        """)
