@@ -7,9 +7,9 @@ import scipy.optimize as opt
 # LOGOS NO TOPO
 col1, col2 = st.columns([1, 0.5])
 with col1:
-    st.image("download.jpg", width=200)
+    st.image("logo.jpg", width=200)
 with col2:
-    st.image("download.png", width=200)
+    st.image("logo_ufsc.png", width=200)
 
 # TÍTULO PRINCIPAL
 st.markdown("""
