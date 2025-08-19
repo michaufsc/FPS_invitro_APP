@@ -13,15 +13,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize as opt
-from datetime import datetime
-
-# Verificar e importar Plotly com fallback
-try:
-    import plotly.express as px
-    import plotly.graph_objects as go
-    PLOTLY_AVAILABLE = True
-except ImportError:
-    PLOTLY_AVAILABLE = False
 
 # Sistema de sessão para armazenar dados
 if 'uploaded_data' not in st.session_state:
@@ -30,9 +21,6 @@ if 'uploaded_data' not in st.session_state:
         'post_irrad': None,
         'metadata': {}
     }
-
-if 'analysis_history' not in st.session_state:
-    st.session_state.analysis_history = []
 
 # Função para mapear nomes de colunas - CORRIGIDA
 def map_column_names(df):
@@ -51,33 +39,23 @@ def map_column_names(df):
         column_mapping[df.columns[0]] = 'Comprimento de Onda'
     
     # Mapear absorbância
-    absorbance_aliases = ['absorbancia', 'absorvancia', 'absorbância', 'absorvância', 'abs', 'a0i']
     for col in df.columns:
-        lower_col = col.lower()
-        if any(alias in lower_col for alias in absorbance_aliases):
+        lower_col = col.lower().strip()
+        if any(word in lower_col for word in ['absorbancia', 'absorvancia', 'absorbância', 'absorvância', 'abs']):
             column_mapping[col] = 'A0i(λ)'
             break
-    else:
-        # Se não encontrou, tenta encontrar por padrão
-        for col in df.columns:
-            lower_col = col.lower()
-            if 'abs' in lower_col:
-                column_mapping[col] = 'A0i(λ)'
-                break
     
     # Mapear E(λ)
-    eritema_aliases = ['e(λ)', 'e(lambda)', 'eritema', 'erythema', 'e(', 'e ']
     for col in df.columns:
-        lower_col = col.lower()
-        if any(alias in lower_col for alias in eritema_aliases):
+        lower_col = col.lower().strip()
+        if any(word in lower_col for word in ['e(λ)', 'e(lambda)', 'eritema', 'erythema', 'e(']):
             column_mapping[col] = 'E(λ)'
             break
     
     # Mapear I(λ)
-    intensity_aliases = ['i(λ)', 'i(lambda)', 'intensidade', 'intensity', 'i ']
     for col in df.columns:
-        lower_col = col.lower()
-        if any(alias in lower_col for alias in intensity_aliases):
+        lower_col = col.lower().strip()
+        if any(word in lower_col for word in ['i(λ)', 'i(lambda)', 'intensidade', 'intensity', 'i(']):
             column_mapping[col] = 'I(λ)'
             break
     
@@ -113,44 +91,7 @@ def calculate_adjusted_spf(df, C):
         raise ValueError("Denominator cannot be zero")
     return numerator / denominator
 
-def calculate_uva_pf(df, C):
-    """Calcula UVA-PF"""
-    d_lambda = 1
-    P = df['P(λ)'].to_numpy()
-    I = df['I(λ)'].to_numpy()
-    A0i = df['A0i(λ)'].to_numpy()
-    
-    numerator = np.sum(P * I * d_lambda)
-    denominator = np.sum(P * I * (10 ** (-A0i * C)) * d_lambda)
-    
-    if denominator == 0:
-        raise ValueError("Denominator cannot be zero")
-    return numerator / denominator
-
-def calculate_critical_wavelength(df):
-    """Calcula Critical Wavelength"""
-    df_uv = df[(df['Comprimento de Onda'] >= 290) & 
-              (df['Comprimento de Onda'] <= 400)].copy()
-    
-    wavelengths = df_uv['Comprimento de Onda'].to_numpy()
-    absorbance = df_uv['A0i(λ)'].to_numpy()
-    
-    total_area = np.trapz(absorbance, wavelengths)
-    target_area = 0.9 * total_area
-    
-    cumulative_area = 0
-    for i, (wl, abs_val) in enumerate(zip(wavelengths, absorbance)):
-        if i == 0:
-            continue
-        segment_area = (abs_val + absorbance[i-1])/2 * (wl - wavelengths[i-1])
-        cumulative_area += segment_area
-        
-        if cumulative_area >= target_area:
-            return wl
-    
-    return 400
-
-# Função para carregar e validar dados
+# Função para carregar e validar dados - CORRIGIDA
 def load_and_validate_data(uploaded_file):
     """Carrega e valida os dados do arquivo com mapeamento de colunas"""
     try:
@@ -159,167 +100,153 @@ def load_and_validate_data(uploaded_file):
         else:
             df = pd.read_csv(uploaded_file)
         
-        df.columns = df.columns.str.strip()
+        # Mostrar colunas originais
+        st.write("🔍 **Colunas originais:**", list(df.columns))
         
         # Mapear nomes de colunas
         column_mapping = map_column_names(df)
-        df = df.rename(columns=column_mapping)
+        st.write("🔄 **Mapeamento:**", column_mapping)
         
-        # Verificar colunas necessárias
+        df = df.rename(columns=column_mapping)
+        st.write("✅ **Colunas após mapeamento:**", list(df.columns))
+        
+        # Verificar se todas as colunas necessárias estão presentes
         required_cols = ['Comprimento de Onda', 'E(λ)', 'I(λ)', 'A0i(λ)']
         missing_cols = [col for col in required_cols if col not in df.columns]
         
         if missing_cols:
-            raise ValueError(f"Colunas faltando após mapeamento: {', '.join(missing_cols)}")
+            raise ValueError(f"Colunas faltando: {', '.join(missing_cols)}")
             
         return df, None
         
     except Exception as e:
         return None, str(e)
 
-# LOGOS NO TOPO
-col1, col2 = st.columns([1, 0.5])
-with col1:
-    st.image("https://via.placeholder.com/200x80/FF9900/000000?text=MEU+LAB", width=200)
-with col2:
-    st.image("https://via.placeholder.com/200x80/0066CC/FFFFFF?text=UFSC", width=200)
+# Interface principal
+st.title("🌞 Análise de Proteção Solar")
+st.markdown("---")
 
-# TÍTULO PRINCIPAL
-st.title("🌞 Análise Completa de Proteção Solar")
+# Upload do arquivo
+uploaded_file = st.file_uploader("📤 Carregue seu arquivo de dados (Excel/CSV)", 
+                               type=["xlsx", "csv"])
 
-# Menu lateral para navegação
-with st.sidebar:
-    st.image("https://via.placeholder.com/150x50/FF9900/000000?text=LOGO", width=150)
-    st.title("Navegação")
-    page = st.radio("Selecione a página:", 
-                   ["Cálculo SPF", "Análise UVA", "Métricas Avançadas", "Explicação das Equações"])
+if uploaded_file:
+    st.success(f"✅ Arquivo carregado: {uploaded_file.name}")
     
-    st.markdown("---")
-    st.info("""
-    **Instruções:**
-    1. Faça upload dos dados
-    2. Configure os parâmetros
-    3. Visualize os resultados
-    """)
-
-# Página principal baseada na seleção
-if page == "Cálculo SPF":
-    st.header("🔍 Cálculo do Fator de Proteção Solar (SPF)")
+    # Debug: mostrar conteúdo bruto do arquivo
+    with st.expander("🔍 Visualizar conteúdo original do arquivo"):
+        try:
+            if uploaded_file.name.endswith('xlsx'):
+                raw_df = pd.read_excel(uploaded_file)
+            else:
+                raw_df = pd.read_csv(uploaded_file)
+            st.write("📋 **Conteúdo original (primeiras 5 linhas):**")
+            st.dataframe(raw_df.head())
+            st.write(f"📊 **Total de linhas:** {len(raw_df)}")
+            st.write("🔤 **Colunas originais:**", list(raw_df.columns))
+            st.write("📝 **Tipos de dados:**")
+            st.write(raw_df.dtypes)
+        except Exception as e:
+            st.error(f"Erro ao ler arquivo: {e}")
     
-    # Upload do arquivo
-    uploaded_file = st.file_uploader("Carregue dados pré-irradiação (Excel/CSV)", 
-                                   type=["xlsx", "csv"], 
-                                   key="spf_upload")
+    df, error = load_and_validate_data(uploaded_file)
     
-    if uploaded_file:
-        df, error = load_and_validate_data(uploaded_file)
+    if error:
+        st.error(f"❌ Erro ao processar arquivo: {error}")
         
-        if error:
-            st.error(f"Erro ao processar arquivo: {error}")
-            st.info("""
-            **Formato esperado:** Seu arquivo deve conter colunas para:
-            - Comprimento de Onda (nm)
-            - E(λ) [Eritema]
-            - I(λ) [Intensidade]
-            - Absorbância [pode ser chamada de Absorbancia, Absorvancia, etc.]
-            """)
-        else:
-            # Mostrar preview dos dados
-            st.subheader("📋 Dados processados (primeiras linhas)")
-            st.dataframe(df.head(), use_container_width=True)
+        # Tentativa alternativa de leitura
+        st.info("🔄 Tentando leitura alternativa...")
+        try:
+            if uploaded_file.name.endswith('xlsx'):
+                alt_df = pd.read_excel(uploaded_file)
+            else:
+                alt_df = pd.read_csv(uploaded_file)
             
-            # Cálculo do SPF
-            try:
+            st.write("📋 **Estrutura do arquivo:**")
+            st.dataframe(alt_df.head(3))
+            
+            # Tentativa manual de mapeamento
+            st.write("🎯 **Sugestão de mapeamento manual:**")
+            if len(alt_df.columns) >= 4:
+                manual_mapping = {
+                    alt_df.columns[0]: 'Comprimento de Onda',
+                    alt_df.columns[1]: 'E(λ)',
+                    alt_df.columns[2]: 'I(λ)', 
+                    alt_df.columns[3]: 'A0i(λ)'
+                }
+                st.write("Mapeamento sugerido:", manual_mapping)
+                
+        except Exception as alt_error:
+            st.error(f"Erro na leitura alternativa: {alt_error}")
+            
+    else:
+        # Dados processados com sucesso
+        st.success("✅ Arquivo processado com sucesso!")
+        
+        # Mostrar dados
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("📊 Dados processados")
+            st.dataframe(df.head(), use_container_width=True)
+        
+        with col2:
+            st.subheader("📈 Estatísticas")
+            st.metric("Total de pontos", len(df))
+            st.metric("Faixa de comprimento de onda", 
+                     f"{df['Comprimento de Onda'].min()} - {df['Comprimento de Onda'].max()} nm")
+            st.metric("Absorbância máxima", f"{df['A0i(λ)'].max():.3f}")
+            st.metric("Absorbância mínima", f"{df['A0i(λ)'].min():.3f}")
+        
+        # Cálculo do SPF
+        try:
+            with st.spinner("🧮 Calculando SPF..."):
                 spf = calculate_spf(df)
-                st.success(f"📊 SPF in vitro calculado: {spf:.2f}")
-                
-                # Ajuste do SPF
-                st.subheader("🔧 Ajuste do SPF")
-                SPF_label = st.number_input("SPF rotulado (in vivo)", 
-                                         min_value=1.0, value=30.0, step=0.1)
-                
-                # Otimização para encontrar C
+            
+            st.success(f"✅ **SPF in vitro calculado:** {spf:.2f}")
+            
+            # Ajuste do SPF
+            st.subheader("🔧 Ajuste do SPF")
+            SPF_label = st.slider("SPF rotulado (in vivo)", 
+                                min_value=1.0, max_value=100.0, 
+                                value=30.0, step=0.1)
+            
+            with st.spinner("⚙️ Otimizando coeficiente de ajuste..."):
                 def error_function(C):
                     return abs(calculate_adjusted_spf(df, C) - SPF_label)
                 
                 result = opt.minimize_scalar(error_function, bounds=(0.5, 1.6), method='bounded')
                 C_adjusted = result.x
                 SPF_adjusted = calculate_adjusted_spf(df, C_adjusted)
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("Coeficiente de Ajuste (C)", f"{C_adjusted:.4f}")
-                with col2:
-                    st.metric("SPF Ajustado", f"{SPF_adjusted:.2f}")
-                
-                # Visualização
-                st.subheader("📈 Visualização dos Dados")
-                fig, ax = plt.subplots(figsize=(10, 6))
-                ax.plot(df['Comprimento de Onda'], df['A0i(λ)'], label='Absorbância', linewidth=2)
-                ax.plot(df['Comprimento de Onda'], df['E(λ)'], label='E(λ) - Eritema', linewidth=2)
-                ax.plot(df['Comprimento de Onda'], df['I(λ)'], label='I(λ) - Intensidade', linewidth=2)
-                ax.set_xlabel('Comprimento de Onda (nm)')
-                ax.set_ylabel('Valores')
-                ax.set_title("Dados Pré-Irradiação")
-                ax.legend()
-                ax.grid(True)
-                st.pyplot(fig)
-                
-            except ValueError as e:
-                st.error(f"Erro no cálculo: {str(e)}")
+            
+            # Resultados
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("SPF In Vitro", f"{spf:.2f}")
+            with col2:
+                st.metric("Coeficiente C", f"{C_adjusted:.4f}")
+            with col3:
+                st.metric("SPF Ajustado", f"{SPF_adjusted:.2f}")
+            
+            # Visualização gráfica
+            st.subheader("📈 Visualização dos Dados")
+            
+            fig, ax = plt.subplots(figsize=(12, 6))
+            ax.plot(df['Comprimento de Onda'], df['A0i(λ)'], 
+                   label='Absorbância', linewidth=2, color='blue')
+            ax.set_xlabel('Comprimento de Onda (nm)')
+            ax.set_ylabel('Absorbância')
+            ax.set_title("Espectro de Absorbância")
+            ax.legend()
+            ax.grid(True, alpha=0.3)
+            st.pyplot(fig)
+            
+        except Exception as calc_error:
+            st.error(f"❌ Erro no cálculo: {calc_error}")
 
-elif page == "Análise UVA":
-    st.header("🌞 Análise de Proteção UVA")
-    st.info("Funcionalidade em desenvolvimento...")
-
-elif page == "Métricas Avançadas":
-    st.header("🔬 Métricas Avançadas")
-    st.info("Funcionalidade em desenvolvimento...")
-
-elif page == "Explicação das Equações":
-    st.header("📚 Explicação das Equações Matemáticas")
-    
-    st.markdown("""
-    ## 📊 Equações Principais
-    
-    ### 1. Cálculo do SPF in vitro
-    """)
-    
-    st.latex(r'''
-    SPF = \frac{\sum_{290}^{400} E(\lambda) \times I(\lambda) \times \Delta\lambda}
-    {\sum_{290}^{400} E(\lambda) \times I(\lambda) \times T(\lambda) \times \Delta\lambda}
-    ''')
-    
-    st.markdown("""
-    **Onde:**
-    - $E(\lambda)$ = Eficiência relativa de produção de eritema
-    - $I(\lambda)$ = Intensidade spectral da luz solar  
-    - $T(\lambda)$ = Transmitância da amostra ($T = 10^{-A(\lambda)}$)
-    - $A(\lambda)$ = Absorbância da amostra
-    - $\Delta\lambda$ = Intervalo entre comprimentos de onda (1 nm)
-    """)
-    
-    st.markdown("""
-    ### 2. SPF Ajustado com Coeficiente C
-    """)
-    
-    st.latex(r'''
-    SPF_{\text{ajustado}} = \frac{\sum E(\lambda) \times I(\lambda) \times \Delta\lambda}
-    {\sum E(\lambda) \times I(\lambda) \times 10^{-A(\lambda) \times C} \times \Delta\lambda}
-    ''')
-    
-    st.markdown("""
-    **Onde:**
-    - $C$ = Coeficiente de ajuste que correlaciona o SPF in vitro com o SPF in vivo
-    """)
+else:
+    st.info("📝 Por favor, carregue um arquivo Excel ou CSV para começar a análise")
 
 # Rodapé
 st.markdown("---")
-st.markdown("""
-**Desenvolvido para análise de proteção solar**  
-*Sistema compatível com diversos formatos de dados*
-""")
-
-# Avisos de dependências
-if not PLOTLY_AVAILABLE:
-    st.sidebar.warning("Plotly não está instalado. Para gráficos interativos: `pip install plotly`")
+st.markdown("**🔬 Sistema de Análise de Proteção Solar**")
