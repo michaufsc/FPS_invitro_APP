@@ -112,7 +112,80 @@ def calculate_adjusted_spf(df, C):
         raise ValueError("Denominator cannot be zero")
     return numerator / denominator
 
-# ... (as outras funções de cálculo permanecem as mesmas)
+def calculate_uva_pf(df, C):
+    """Calcula UVA-PF conforme Equação 3"""
+    d_lambda = 1
+    P = df['P(λ)'].to_numpy()
+    I = df['I(λ)'].to_numpy()
+    A0i = df['A0i(λ)'].to_numpy()
+    
+    numerator = np.sum(P * I * d_lambda)
+    denominator = np.sum(P * I * (10 ** (-A0i * C)) * d_lambda)
+    
+    if denominator == 0:
+        raise ValueError("Denominator cannot be zero")
+    return numerator / denominator
+
+def calculate_uva_pf_i(df_post_irrad, C):
+    """Calcula UVAPF-I (340-400 nm) conforme Equação 5"""
+    mask = (df_post_irrad['Comprimento de Onda'] >= 340) & (df_post_irrad['Comprimento de Onda'] <= 400)
+    df_uva = df_post_irrad[mask].copy()
+    
+    P = df_uva['P(λ)'].to_numpy()
+    I = df_uva['I(λ)'].to_numpy()
+    Ai = df_uva['Ai(λ)'].to_numpy()
+    dλ = 1
+    
+    numerator = np.sum(P * I * dλ)
+    denominator = np.sum(P * I * 10**(-Ai * C) * dλ)
+    
+    return numerator / denominator if denominator != 0 else 0
+
+def calculate_critical_wavelength(df_post):
+    """Calcula Critical Wavelength conforme Equação 7"""
+    df_uva = df_post[(df_post['Comprimento de Onda'] >= 290) & 
+                    (df_post['Comprimento de Onda'] <= 400)].copy()
+    
+    wavelengths = df_uva['Comprimento de Onda'].to_numpy()
+    absorbance = df_uva['Ai(λ)'].to_numpy()
+    
+    total_area = np.trapz(absorbance, wavelengths)
+    target_area = 0.9 * total_area
+    
+    cumulative_area = 0
+    for i, (wl, abs) in enumerate(zip(wavelengths, absorbance)):
+        if i == 0:
+            continue
+        segment_area = (abs + absorbance[i-1])/2 * (wl - wavelengths[i-1])
+        cumulative_area += segment_area
+        
+        if cumulative_area >= target_area:
+            return wl
+    
+    return 400
+
+def calculate_uva_uv_ratio(df_post):
+    """Calcula UVA-I/UV ratio conforme Equação 8"""
+    mask_uva = (df_post['Comprimento de Onda'] >= 340) & (df_post['Comprimento de Onda'] <= 400)
+    uva_area = np.trapz(df_post[mask_uva]['Ai(λ)'], df_post[mask_uva]['Comprimento de Onda'])
+    
+    mask_uv = (df_post['Comprimento de Onda'] >= 290) & (df_post['Comprimento de Onda'] <= 400)
+    uv_area = np.trapz(df_post[mask_uv]['Ai(λ)'], df_post[mask_uv]['Comprimento de Onda'])
+    
+    return (uva_area/60) / (uv_area/110)
+
+# Função alternativa para gráficos se Plotly não estiver disponível
+def create_matplotlib_figure(df, x_col, y_cols, title):
+    """Cria gráfico usando matplotlib como fallback"""
+    fig, ax = plt.subplots(figsize=(10, 6))
+    for y_col in y_cols:
+        ax.plot(df[x_col], df[y_col], label=y_col)
+    ax.set_xlabel(x_col)
+    ax.set_ylabel('Valores')
+    ax.set_title(title)
+    ax.legend()
+    ax.grid(True)
+    return fig
 
 # Função para carregar e validar dados
 def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
