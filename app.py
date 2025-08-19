@@ -3,8 +3,15 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize as opt
-import plotly.express as px
-import plotly.graph_objects as go
+
+# Verificar e importar Plotly com fallback
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+    st.warning("Plotly não está instalado. Instale com: pip install plotly")
 
 # LOGOS NO TOPO
 col1, col2 = st.columns([1, 0.5])
@@ -36,7 +43,7 @@ with tab4:
     st.markdown("""
     **Onde:**
     - $E(\lambda)$ = Eficiência relativa de produção de eritema em cada comprimento de onda
-    - $I(\lambda)$ = Intensidade spectral da luz solar em cada comprimento de onda  
+    - $I(\lambda)$ = Intensidade spectral da luz solar em cada comprimento de Onda  
     - $T(\lambda)$ = Transmitância da amostra ($T = 10^{-A_{0i}(\lambda)}$)
     - $A_{0i}(\lambda)$ = Absorbância inicial da amostra
     - $\Delta\lambda$ = Intervalo entre comprimentos de onda (normalmente 1 nm)
@@ -127,7 +134,7 @@ with tab4:
     **Referências:** ISO 24443:2012, FDA Broad Spectrum Test, Método COLIPA/CTFA/JCIA
     """)
 
-# Funções de cálculo (mantidas as originais)
+# Funções de cálculo
 def calculate_spf(df):
     """Calcula SPF in vitro conforme Equação 1"""
     d_lambda = 1
@@ -219,7 +226,20 @@ def calculate_uva_uv_ratio(df_post):
     
     return (uva_area/60) / (uv_area/110)
 
-# Continuação das abas originais (tab1, tab2, tab3)
+# Função alternativa para gráficos se Plotly não estiver disponível
+def create_matplotlib_figure(df, x_col, y_cols, title):
+    """Cria gráfico usando matplotlib como fallback"""
+    fig, ax = plt.subplots(figsize=(10, 6))
+    for y_col in y_cols:
+        ax.plot(df[x_col], df[y_col], label=y_col)
+    ax.set_xlabel(x_col)
+    ax.set_ylabel('Valores')
+    ax.set_title(title)
+    ax.legend()
+    ax.grid(True)
+    return fig
+
+# Continuação das abas originais
 with tab1:
     st.header("🔍 Cálculo do Fator de Proteção Solar (SPF)")
     
@@ -296,9 +316,15 @@ with tab1:
                     
                     # Visualização
                     st.subheader("📈 Visualização dos Dados")
-                    fig = px.line(df, x='Comprimento de Onda', y=['A0i(λ)', 'E(λ)', 'I(λ)'],
-                                title="Dados Pré-Irradiação")
-                    st.plotly_chart(fig, use_container_width=True)
+                    if PLOTLY_AVAILABLE:
+                        fig = px.line(df, x='Comprimento de Onda', y=['A0i(λ)', 'E(λ)', 'I(λ)'],
+                                    title="Dados Pré-Irradiação")
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        fig = create_matplotlib_figure(df, 'Comprimento de Onda', 
+                                                     ['A0i(λ)', 'E(λ)', 'I(λ)'], 
+                                                     "Dados Pré-Irradiação")
+                        st.pyplot(fig)
                     
                 except ValueError as e:
                     st.error(f"Erro no cálculo: {str(e)}")
@@ -380,9 +406,15 @@ with tab2:
                 
                 # Visualização
                 st.subheader("📈 Espectro de Absorbância Pós-Irradiação")
-                fig = px.line(df_post, x='Comprimento de Onda', y='Ai(λ)',
-                            title="Absorbância após Irradiação")
-                st.plotly_chart(fig, use_container_width=True)
+                if PLOTLY_AVAILABLE:
+                    fig = px.line(df_post, x='Comprimento de Onda', y='Ai(λ)',
+                                title="Absorbância após Irradiação")
+                    st.plotly_chart(fig, use_container_width=True)
+                else:
+                    fig = create_matplotlib_figure(df_post, 'Comprimento de Onda', 
+                                                 ['Ai(λ)'], 
+                                                 "Absorbância após Irradiação")
+                    st.pyplot(fig)
                 
         except Exception as e:
             st.error(f"Erro ao processar arquivo: {str(e)}")
@@ -409,7 +441,7 @@ with tab3:
         - Razão UVA/UV ≥ 1/3 é recomendada
         """)
     
-    if 'df_post' in globals():
+    if 'df_post' in locals() or 'df_post' in globals():
         # Critical Wavelength
         cw = calculate_critical_wavelength(df_post)
         
@@ -427,44 +459,47 @@ with tab3:
         # Visualização avançada
         st.subheader("📊 Análise do Espectro UVA")
         
-        # Criando área cumulativa
-        df_uv = df_post[(df_post['Comprimento de Onda'] >= 290) & 
-                       (df_post['Comprimento de Onda'] <= 400)].copy()
-        df_uv['Cumulative Area'] = df_uv['Ai(λ)'].cumsum()
-        total_area = df_uv['Cumulative Area'].max()
-        
-        fig = go.Figure()
-        
-        # Absorbância
-        fig.add_trace(go.Scatter(
-            x=df_uv['Comprimento de Onda'],
-            y=df_uv['Ai(λ)'],
-            name='Absorbância',
-            yaxis='y1'
-        ))
-        
-        # Área cumulativa
-        fig.add_trace(go.Scatter(
-            x=df_uv['Comprimento de Onda'],
-            y=df_uv['Cumulative Area'],
-            name='Área Cumulativa',
-            yaxis='y2',
-            line=dict(dash='dot')
-        ))
-        
-        # Linha do CW
-        fig.add_vline(x=cw, line_dash="dash", line_color="red",
-                     annotation_text=f'CW: {cw:.1f} nm')
-        
-        fig.update_layout(
-            title="Análise do Comprimento de Onda Crítico",
-            xaxis_title="Comprimento de Onda (nm)",
-            yaxis_title="Absorbância",
-            yaxis2=dict(title="Área Cumulativa", overlaying='y', side='right'),
-            hovermode="x unified"
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
+        if PLOTLY_AVAILABLE:
+            # Criando área cumulativa
+            df_uv = df_post[(df_post['Comprimento de Onda'] >= 290) & 
+                           (df_post['Comprimento de Onda'] <= 400)].copy()
+            df_uv['Cumulative Area'] = df_uv['Ai(λ)'].cumsum()
+            total_area = df_uv['Cumulative Area'].max()
+            
+            fig = go.Figure()
+            
+            # Absorbância
+            fig.add_trace(go.Scatter(
+                x=df_uv['Comprimento de Onda'],
+                y=df_uv['Ai(λ)'],
+                name='Absorbância',
+                yaxis='y1'
+            ))
+            
+            # Área cumulativa
+            fig.add_trace(go.Scatter(
+                x=df_uv['Comprimento de Onda'],
+                y=df_uv['Cumulative Area'],
+                name='Área Cumulativa',
+                yaxis='y2',
+                line=dict(dash='dot')
+            ))
+            
+            # Linha do CW
+            fig.add_vline(x=cw, line_dash="dash", line_color="red",
+                         annotation_text=f'CW: {cw:.1f} nm')
+            
+            fig.update_layout(
+                title="Análise do Comprimento de Onda Crítico",
+                xaxis_title="Comprimento de Onda (nm)",
+                yaxis_title="Absorbância",
+                yaxis2=dict(title="Área Cumulativa", overlaying='y', side='right'),
+                hovermode="x unified"
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Visualização avançada requer Plotly. Instale com: pip install plotly")
         
     else:
         st.warning("Por favor, carregue os dados pós-irradiação na aba 'Análise UVA-PF' primeiro")
@@ -477,3 +512,17 @@ st.markdown("""
 - COLIPA/CTFA/JCIA: International sun protection factor (SPF) test method  
 - FDA: Broad Spectrum Test Procedure
 """)
+
+# Instruções de instalação se Plotly não estiver disponível
+if not PLOTLY_AVAILABLE:
+    st.markdown("---")
+    st.warning("""
+    ⚠️ **Plotly não está instalado**
+    
+    Para visualizações gráficas completas, instale o Plotly:
+    ```
+    pip install plotly
+    ```
+    
+    O aplicativo continuará funcionando com funcionalidades básicas.
+    """)
