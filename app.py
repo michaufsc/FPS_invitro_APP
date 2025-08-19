@@ -66,7 +66,7 @@ def map_column_names(df):
                 break
     
     # Mapear E(λ)
-    eritema_aliases = ['e(λ)', 'e(lambda)', 'eritema', 'erythema', 'e ']
+    eritema_aliases = ['e(λ)', 'e(lambda)', 'eritema', 'erythema', 'e ', 'e(']
     for col in df.columns:
         lower_col = col.lower()
         if any(alias in lower_col for alias in eritema_aliases):
