@@ -35,7 +35,7 @@ def map_column_names(df, data_type="pre_irradiation"):
     # Mapear comprimento de onda
     for col in df.columns:
         lower_col = col.lower().strip()
-        if any(word in lower_col for word in ['comprimento', 'onda', 'wavelength', 'lambda', 'nm']):
+        if any(word in lower_col for word in ['wavelength', 'comprimento', 'onda', 'wavelength', 'lambda', 'nm']):
             column_mapping[col] = 'Comprimento de Onda'
             break
     else:
@@ -66,13 +66,13 @@ def map_column_names(df, data_type="pre_irradiation"):
         # Para dados pós-irradiação (UVA)
         for col in df.columns:
             lower_col = col.lower().strip()
-            if any(word in lower_col for word in ['absorbancia', 'absorvancia', 'absorbância', 'absorvância', 'abs', 'a_e', 'ai']):
+            if any(word in lower_col for word in ['a_e','absorbancia', 'absorvancia', 'absorbância', 'absorvância', 'abs', 'a_e', 'ai']):
                 column_mapping[col] = 'Ai(λ)'
                 break
         
         for col in df.columns:
             lower_col = col.lower().strip()
-            if any(word in lower_col for word in ['p(λ)', 'p(lambda)', 'pigmentacao', 'pigmentação', 'p']):
+            if any(word in lower_col for word in ['p','p(λ)', 'p(lambda)', 'pigmentacao', 'pigmentação', 'p']):
                 column_mapping[col] = 'P(λ)'
                 break
         
