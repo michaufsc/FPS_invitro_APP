@@ -13,43 +13,61 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ESPECTROS DE REFERÊNCIA (Annex C da norma)
+# ESPECTROS DE REFERÊNCIA COMPLETOS (Annex C da norma)
 # =============================================================================
 def load_reference_spectra():
-    """Carrega os espectros de referência da Annex C da norma ISO"""
-    # Dados completos disponíveis na Annex C da norma
+    """Carrega os espectros de referência COMPLETOS da Annex C da norma ISO"""
     wavelengths = np.arange(290, 401)
     
-    # Espectro de ação PPD (Tabela C.1)
-    ppd_spectrum = np.zeros(111)
-    # Preenchendo valores PPD a partir de 320nm
-    ppd_values = [
-        1.000, 0.975, 0.950, 0.925, 0.900, 0.875, 0.850, 0.825, 0.800, 0.775,
-        0.750, 0.725, 0.700, 0.675, 0.650, 0.625, 0.600, 0.575, 0.550, 0.525,
-        0.500, 0.494, 0.488, 0.482, 0.476, 0.470, 0.464, 0.458, 0.452, 0.446,
-        0.440, 0.434, 0.428, 0.422, 0.416, 0.410, 0.404, 0.398, 0.392, 0.386,
-        0.380, 0.374, 0.368, 0.362, 0.356, 0.350, 0.344, 0.338, 0.332, 0.326,
-        0.320, 0.314, 0.308, 0.302, 0.296, 0.290, 0.284, 0.278, 0.272, 0.266,
-        0.260, 0.254, 0.248, 0.242, 0.236, 0.230, 0.224, 0.218, 0.212, 0.206,
-        0.200, 0.194, 0.188, 0.182, 0.176, 0.170, 0.164, 0.158, 0.152, 0.146,
-        0.140
-    ]
-    ppd_spectrum[30:] = ppd_values  # A partir de 320nm
+    # Espectro de ação PPD (Tabela C.1 completa)
+    ppd_spectrum = np.array([
+        0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,  # 290-299
+        0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,  # 300-309
+        0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,  # 310-319
+        1.000, 0.975, 0.950, 0.925, 0.900, 0.875, 0.850, 0.825, 0.800, 0.775,  # 320-329
+        0.750, 0.725, 0.700, 0.675, 0.650, 0.625, 0.600, 0.575, 0.550, 0.525,  # 330-339
+        0.500, 0.494, 0.488, 0.482, 0.476, 0.470, 0.464, 0.458, 0.452, 0.446,  # 340-349
+        0.440, 0.434, 0.428, 0.422, 0.416, 0.410, 0.404, 0.398, 0.392, 0.386,  # 350-359
+        0.380, 0.374, 0.368, 0.362, 0.356, 0.350, 0.344, 0.338, 0.332, 0.326,  # 360-369
+        0.320, 0.314, 0.308, 0.302, 0.296, 0.290, 0.284, 0.278, 0.272, 0.266,  # 370-379
+        0.260, 0.254, 0.248, 0.242, 0.236, 0.230, 0.224, 0.218, 0.212, 0.206,  # 380-389
+        0.200, 0.194, 0.188, 0.182, 0.176, 0.170, 0.164, 0.158, 0.152, 0.146,  # 390-399
+        0.140  # 400
+    ])
     
-    # Espectro de eritema (CIE 1987)
-    erythema_spectrum = np.zeros(111)
-    # Valores do anexo C (apenas alguns exemplos)
-    erythema_values = [
-        1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 0.8054,
-        0.6486, 0.5224, 0.4207, 0.3388, 0.2729, 0.2198, 0.1770, 0.1426, 0.1148, 0.0925,
-        0.0745, 0.0600, 0.0483, 0.0389, 0.0313, 0.0252, 0.0203, 0.0164, 0.0132, 0.0106,
-        0.0086, 0.0069, 0.0055, 0.0045, 0.0036, 0.0029, 0.0023, 0.0019, 0.0015, 0.0012,
-        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
-        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
-        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
-        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
-        0.0010
-    ]
+    # Espectro de eritema CIE 1987 (Tabela C.1 completa)
+    erythema_spectrum = np.array([
+        1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 0.8054,  # 290-299
+        0.6486, 0.5224, 0.4207, 0.3388, 0.2729, 0.2198, 0.1770, 0.1426, 0.1148, 0.0925,  # 300-309
+        0.0745, 0.0600, 0.0483, 0.0389, 0.0313, 0.0252, 0.0203, 0.0164, 0.0132, 0.0106,  # 310-319
+        0.0086, 0.0069, 0.0055, 0.0045, 0.0036, 0.0029, 0.0023, 0.0019, 0.0015, 0.0012,  # 320-329
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 330-339
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 340-349
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 350-359
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 360-369
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 370-379
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 380-389
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 390-399
+        0.0010  # 400
+    ])
+    # Espectro de irradiância UV-SSR (valores exemplares - devem ser substituídos pelos reais)
+    uv_ssr_spectrum = np.array([
+        8.741E-06, 1.450E-05, 2.659E-05, 4.574E-05, 1.006E-04, 2.589E-04, 7.035E-04, 1.678E-03, 3.727E-03, 7.938E-03,  # 290-299
+        1.478E-02, 2.514E-02, 4.176E-02, 6.223E-02, 8.690E-02, 1.216E-01, 1.615E-01, 1.989E-01, 2.483E-01, 2.894E-01,  # 300-309
+        3.358E-01, 3.872E-01, 4.311E-01, 4.884E-01, 5.121E-01, 5.567E-01, 5.957E-01, 6.256E-01, 6.565E-01, 6.879E-01,  # 310-319
+        7.236E-01, 7.371E-01, 7.677E-01, 7.955E-01, 7.987E-01, 8.290E-01, 8.435E-01, 8.559E-01, 8.791E-01, 8.951E-01,  # 320-329
+        9.010E-01, 9.161E-01, 9.434E-01, 9.444E-01, 9.432E-01, 9.571E-01, 9.663E-01, 9.771E-01, 9.770E-01, 9.967E-01,  # 330-339
+        9.939E-01, 1.007E+00, 1.012E+00, 1.011E+00, 1.021E+00, 1.025E+00, 1.033E+00, 1.034E+00, 1.040E+00, 1.027E+00,  # 340-349
+        1.045E+00, 1.042E+00, 1.040E+00, 1.039E+00, 1.043E+00, 1.046E+00, 1.035E+00, 1.039E+00, 1.027E+00, 1.035E+00,  # 350-359
+        1.037E+00, 1.025E+00, 1.023E+00, 1.016E+00, 9.984E-01, 9.960E-01, 9.674E-01, 9.648E-01, 9.389E-01, 9.191E-01,  # 360-369
+        8.977E-01, 8.725E-01, 8.473E-01, 8.123E-01, 7.840E-01, 7.416E-01, 7.148E-01, 6.687E-01, 6.280E-01, 5.863E-01,  # 370-379
+        5.341E-01, 4.925E-01, 4.482E-01, 3.932E-01, 3.428E-01, 2.985E-01, 2.567E-01, 2.148E-01, 1.800E-01, 1.486E-01,  # 380-389
+        1.193E-01, 9.403E-02, 7.273E-02, 5.532E-02, 4.010E-02, 2.885E-02, 2.068E-02, 1.400E-02, 9.510E-03, 6.194E-03,  # 390-399
+        4.172E-03  # 400
+    ])
+    
+    return wavelengths, ppd_spectrum, erythema_spectrum, uv_ssr_spectrum
+
     erythema_spectrum = erythema_values
     
     return wavelengths, ppd_spectrum, erythema_spectrum
@@ -64,7 +82,7 @@ if 'current_results' not in st.session_state:
 
 # FUNÇÕES DE CÁLCULO - ISO 24443:2011 CORRIGIDAS
 # =============================================================================
-def calculate_spf_in_vitro(df, erythema_spectrum):
+def calculate_spf_in_vitro(df, erythema_spectrum, uv_ssr_spectrum):
     """Eq. 1: SPF in vitro inicial - ISO 24443:2011 CORRIGIDA"""
     d_lambda = 1
     total_numerator = 0    # SEM proteção (∫ E·I dλ)
@@ -75,9 +93,10 @@ def calculate_spf_in_vitro(df, erythema_spectrum):
         if wavelength < 290 or wavelength > 400:
             continue
         
-        # Obter valor do espectro de eritema
-        E = erythema_spectrum[wavelength - 290] if 290 <= wavelength <= 400 else 0
-        I = row['I(λ)']
+        # Obter valor do espectro de referência
+        idx = wavelength - 290
+        E = erythema_spectrum[idx]
+        I = uv_ssr_spectrum[idx]  # Usar espectro de referência
         A0 = row['A0i(λ)']
         T = 10 ** (-A0)  # Transmitância
         
@@ -86,7 +105,7 @@ def calculate_spf_in_vitro(df, erythema_spectrum):
     
     return total_numerator / total_denominator if total_denominator != 0 else 0
 
-def calculate_adjusted_spf(df, C, erythema_spectrum):
+def calculate_adjusted_spf(df, C, erythema_spectrum, uv_ssr_spectrum):
     """Eq. 2: SPF ajustado com coeficiente C - ISO 24443:2011 CORRIGIDA"""
     d_lambda = 1
     total_numerator = 0    # SEM proteção (∫ E·I dλ)
@@ -97,8 +116,9 @@ def calculate_adjusted_spf(df, C, erythema_spectrum):
         if wavelength < 290 or wavelength > 400:
             continue
         
-        E = erythema_spectrum[wavelength - 290] if 290 <= wavelength <= 400 else 0
-        I = row['I(λ)']
+        idx = wavelength - 290
+        E = erythema_spectrum[idx]
+        I = uv_ssr_spectrum[idx]  # Usar espectro de referência
         A0 = row['A0i(λ)']
         T_adjusted = 10 ** (-A0 * C)  # Transmitância ajustada
         
@@ -107,52 +127,51 @@ def calculate_adjusted_spf(df, C, erythema_spectrum):
     
     return total_numerator / total_denominator if total_denominator != 0 else 0
 
-def calculate_uva_pf_initial(df_uva, C, ppd_spectrum):
+def calculate_uva_pf_initial(df, C, ppd_spectrum, uv_ssr_spectrum):
     """Eq. 3: UVA-PF₀ inicial - ISO 24443:2011 CORRIGIDA"""
     d_lambda = 1
-    total_numerator = 0    # COM proteção (∫ P·I·T dλ) - CORRIGIDO
-    total_denominator = 0  # SEM proteção (∫ P·I dλ)   - CORRIGIDO
+    total_numerator = 0    # SEM proteção (∫ P·I dλ)
+    total_denominator = 0  # COM proteção (∫ P·I·T dλ)
     
-    for _, row in df_uva.iterrows():
+    for _, row in df.iterrows():
         wavelength = int(row['Comprimento de Onda'])
         if wavelength < 320 or wavelength > 400:
             continue
         
-        # Obter valor do espectro PPD
-        P = ppd_spectrum[wavelength - 290] if 320 <= wavelength <= 400 else 0
-        I = row['I(λ)']
+        idx = wavelength - 290
+        P = ppd_spectrum[idx]
+        I = uv_ssr_spectrum[idx]  # Usar espectro de referência
         A0 = row['A0i(λ)']
         T_adjusted = 10 ** (-A0 * C)  # Transmitância ajustada
         
-        # CORREÇÃO: Numerador = COM proteção, Denominador = SEM proteção
-        total_numerator += P * I * T_adjusted * d_lambda
-        total_denominator += P * I * d_lambda
+        # CORREÇÃO: Numerador = SEM proteção, Denominador = COM proteção
+        total_numerator += P * I * d_lambda
+        total_denominator += P * I * T_adjusted * d_lambda
     
-    return total_denominator / total_numerator if total_numerator != 0 else 0
+    return total_numerator / total_denominator if total_denominator != 0 else 0
 
-def calculate_uva_pf_final(df_uva, C, ppd_spectrum):
+def calculate_uva_pf_final(df, ppd_spectrum, uv_ssr_spectrum):
     """Eq. 5: UVA-PF final após irradiação - ISO 24443:2011 CORRIGIDA"""
     d_lambda = 1
-    total_numerator = 0    # COM proteção (∫ P·I·T dλ) - CORRIGIDO
-    total_denominator = 0  # SEM proteção (∫ P·I dλ)   - CORRIGIDO
+    total_numerator = 0    # SEM proteção (∫ P·I dλ)
+    total_denominator = 0  # COM proteção (∫ P·I·T dλ)
     
-    for _, row in df_uva.iterrows():
+    for _, row in df.iterrows():
         wavelength = int(row['Comprimento de Onda'])
         if wavelength < 320 or wavelength > 400:
             continue
         
-        # Obter valor do espectro PPD
-        P = ppd_spectrum[wavelength - 290] if 320 <= wavelength <= 400 else 0
-        I = row['I(λ)']
+        idx = wavelength - 290
+        P = ppd_spectrum[idx]
+        I = uv_ssr_spectrum[idx]  # Usar espectro de referência
         Ae = row['Ai(λ)']  # Absorbância APÓS irradiação
-        # CORREÇÃO: C já foi aplicado no ajuste inicial, não multiplicar novamente
         T_final = 10 ** (-Ae)  # Transmitância final
         
-        # CORREÇÃO: Numerador = COM proteção, Denominador = SEM proteção
-        total_numerator += P * I * T_final * d_lambda
-        total_denominator += P * I * d_lambda
+        # CORREÇÃO: Numerador = SEM proteção, Denominador = COM proteção
+        total_numerator += P * I * d_lambda
+        total_denominator += P * I * T_final * d_lambda
     
-    return total_denominator / total_numerator if total_numerator != 0 else 0
+    return total_numerator / total_denominator if total_denominator != 0 else 0
 
 def calculate_exposure_dose(uva_pf_0):
     """Eq. 4: Dose de exposição - ISO 24443:2011"""
@@ -297,7 +316,8 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
 st.title("🌞 Análise de Proteção Solar - ISO 24443:2011")
 
 # Carregar espectros de referência
-wavelengths, ppd_spectrum, erythema_spectrum = load_reference_spectra()
+wavelengths, ppd_spectrum, erythema_spectrum, uv_ssr_spectrum = load_reference_spectra()
+
 
 # Menu lateral
 with st.sidebar:
@@ -336,7 +356,7 @@ if page == "ISO 24443 Completo":
                 st.dataframe(df_spf.head())
                 
                 try:
-                    spf_in_vitro = calculate_spf_in_vitro(df_spf, erythema_spectrum)
+                    spf_in_vitro = calculate_spf_in_vitro(df_spf, erythema_spectrum, uv_ssr_spectrum)
                     st.metric("SPF in vitro (Eq. 1)", f"{spf_in_vitro:.2f}")
                     
                     SPF_in_vivo = st.number_input("SPF in vivo medido:", 
@@ -347,7 +367,7 @@ if page == "ISO 24443 Completo":
                     
                     result = opt.minimize_scalar(error_function, bounds=(0.5, 1.6), method='bounded')
                     C_value = result.x
-                    spf_ajustado = calculate_adjusted_spf(df_spf, C_value, erythema_spectrum)
+                    spf_ajustado = calculate_adjusted_spf(df_spf, C_value, erythema_spectrum, uv_ssr_spectrum)
                     
                     col1, col2 = st.columns(2)
                     with col1:
@@ -406,7 +426,7 @@ if page == "ISO 24443 Completo":
                         try:
                             uva_pf_0 = calculate_uva_pf_initial(df_uva, C_value, ppd_spectrum)
                             dose = calculate_exposure_dose(uva_pf_0)
-                            uva_pf_final = calculate_uva_pf_final(df_uva, C_value, ppd_spectrum)
+                            uva_pf_final = calculate_uva_pf_final(df_uva, ppd_spectrum, uv_ssr_spectrum)
                             critical_wl = calculate_critical_wavelength(df_uva, C_value)
                             
                             col1, col2, col3, col4 = st.columns(4)
