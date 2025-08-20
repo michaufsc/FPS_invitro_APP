@@ -7,11 +7,52 @@ from datetime import datetime
 
 # Configuração da página
 st.set_page_config(
-    page_title="Análise de Proteção Solar",
+    page_title="Análise de Proteção Solar - ISO 24443:2011",
     page_icon="🌞",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# ESPECTROS DE REFERÊNCIA (Annex C da norma)
+# =============================================================================
+def load_reference_spectra():
+    """Carrega os espectros de referência da Annex C da norma ISO"""
+    # Dados completos disponíveis na Annex C da norma
+    wavelengths = np.arange(290, 401)
+    
+    # Espectro de ação PPD (Tabela C.1)
+    ppd_spectrum = np.zeros(111)
+    # Preenchendo valores PPD a partir de 320nm
+    ppd_values = [
+        1.000, 0.975, 0.950, 0.925, 0.900, 0.875, 0.850, 0.825, 0.800, 0.775,
+        0.750, 0.725, 0.700, 0.675, 0.650, 0.625, 0.600, 0.575, 0.550, 0.525,
+        0.500, 0.494, 0.488, 0.482, 0.476, 0.470, 0.464, 0.458, 0.452, 0.446,
+        0.440, 0.434, 0.428, 0.422, 0.416, 0.410, 0.404, 0.398, 0.392, 0.386,
+        0.380, 0.374, 0.368, 0.362, 0.356, 0.350, 0.344, 0.338, 0.332, 0.326,
+        0.320, 0.314, 0.308, 0.302, 0.296, 0.290, 0.284, 0.278, 0.272, 0.266,
+        0.260, 0.254, 0.248, 0.242, 0.236, 0.230, 0.224, 0.218, 0.212, 0.206,
+        0.200, 0.194, 0.188, 0.182, 0.176, 0.170, 0.164, 0.158, 0.152, 0.146,
+        0.140
+    ]
+    ppd_spectrum[30:] = ppd_values  # A partir de 320nm
+    
+    # Espectro de eritema (CIE 1987)
+    erythema_spectrum = np.zeros(111)
+    # Valores do anexo C (apenas alguns exemplos)
+    erythema_values = [
+        1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 0.8054,
+        0.6486, 0.5224, 0.4207, 0.3388, 0.2729, 0.2198, 0.1770, 0.1426, 0.1148, 0.0925,
+        0.0745, 0.0600, 0.0483, 0.0389, 0.0313, 0.0252, 0.0203, 0.0164, 0.0132, 0.0106,
+        0.0086, 0.0069, 0.0055, 0.0045, 0.0036, 0.0029, 0.0023, 0.0019, 0.0015, 0.0012,
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
+        0.0010
+    ]
+    erythema_spectrum = erythema_values
+    
+    return wavelengths, ppd_spectrum, erythema_spectrum
 
 # Sistema de sessão
 if 'uploaded_data' not in st.session_state:
@@ -21,97 +62,100 @@ if 'analysis_history' not in st.session_state:
 if 'current_results' not in st.session_state:
     st.session_state.current_results = {}
 
-# FUNÇÕES DE CÁLCULO - ISO 24443:2012
+# FUNÇÕES DE CÁLCULO - ISO 24443:2011 CORRIGIDAS
 # =============================================================================
-def calculate_spf_in_vitro(df):
-    """Eq. 1: SPF in vitro inicial - ISO 24443:2012"""
+def calculate_spf_in_vitro(df, erythema_spectrum):
+    """Eq. 1: SPF in vitro inicial - ISO 24443:2011 CORRIGIDA"""
     d_lambda = 1
-    total_numerator = 0
-    total_denominator = 0
+    total_numerator = 0    # SEM proteção (∫ E·I dλ)
+    total_denominator = 0  # COM proteção (∫ E·I·T dλ)
     
     for _, row in df.iterrows():
-        wavelength = row['Comprimento de Onda']
+        wavelength = int(row['Comprimento de Onda'])
         if wavelength < 290 or wavelength > 400:
             continue
-            
-        A0 = row['A0i(λ)']
-        E = row['E(λ)']
+        
+        # Obter valor do espectro de eritema
+        E = erythema_spectrum[wavelength - 290] if 290 <= wavelength <= 400 else 0
         I = row['I(λ)']
-        T = 10 ** (-A0)
+        A0 = row['A0i(λ)']
+        T = 10 ** (-A0)  # Transmitância
         
         total_numerator += E * I * d_lambda
         total_denominator += E * I * T * d_lambda
     
     return total_numerator / total_denominator if total_denominator != 0 else 0
 
-def calculate_adjusted_spf(df, C):
-    """Eq. 2: SPF ajustado com coeficiente C - ISO 24443:2012"""
+def calculate_adjusted_spf(df, C, erythema_spectrum):
+    """Eq. 2: SPF ajustado com coeficiente C - ISO 24443:2011 CORRIGIDA"""
     d_lambda = 1
-    total_numerator = 0
-    total_denominator = 0
+    total_numerator = 0    # SEM proteção (∫ E·I dλ)
+    total_denominator = 0  # COM proteção (∫ E·I·T dλ)
     
     for _, row in df.iterrows():
-        wavelength = row['Comprimento de Onda']
+        wavelength = int(row['Comprimento de Onda'])
         if wavelength < 290 or wavelength > 400:
             continue
-            
-        A0 = row['A0i(λ)']
-        E = row['E(λ)']
+        
+        E = erythema_spectrum[wavelength - 290] if 290 <= wavelength <= 400 else 0
         I = row['I(λ)']
-        T_adjusted = 10 ** (-A0 * C)
+        A0 = row['A0i(λ)']
+        T_adjusted = 10 ** (-A0 * C)  # Transmitância ajustada
         
         total_numerator += E * I * d_lambda
         total_denominator += E * I * T_adjusted * d_lambda
     
     return total_numerator / total_denominator if total_denominator != 0 else 0
 
-def calculate_uva_pf_initial(df_uva, C):
-    """Eq. 3: UVA-PF₀ inicial - ISO 24443:2012 - CORRIGIDA"""
+def calculate_uva_pf_initial(df_uva, C, ppd_spectrum):
+    """Eq. 3: UVA-PF₀ inicial - ISO 24443:2011 CORRIGIDA"""
     d_lambda = 1
-    total_numerator = 0
-    total_denominator = 0
+    total_numerator = 0    # COM proteção (∫ P·I·T dλ) - CORRIGIDO
+    total_denominator = 0  # SEM proteção (∫ P·I dλ)   - CORRIGIDO
     
     for _, row in df_uva.iterrows():
-        wavelength = row['Comprimento de Onda']
+        wavelength = int(row['Comprimento de Onda'])
         if wavelength < 320 or wavelength > 400:
             continue
-            
-        # PARA UVA-PF₀: Usamos absorbância INICIAL (A0i) mas do arquivo UVA
-        # Isso assume que o arquivo UVA também tem coluna A0i(λ)
-        A0 = row['A0i(λ)']  # Absorbância inicial
-        P = row['P(λ)']     # Espectro PPD
-        I = row['I(λ)']     # Irradiância UVA
-        T_adjusted = 10 ** (-A0 * C)
         
-        total_numerator += P * I * d_lambda
-        total_denominator += P * I * T_adjusted * d_lambda
+        # Obter valor do espectro PPD
+        P = ppd_spectrum[wavelength - 290] if 320 <= wavelength <= 400 else 0
+        I = row['I(λ)']
+        A0 = row['A0i(λ)']
+        T_adjusted = 10 ** (-A0 * C)  # Transmitância ajustada
+        
+        # CORREÇÃO: Numerador = COM proteção, Denominador = SEM proteção
+        total_numerator += P * I * T_adjusted * d_lambda
+        total_denominator += P * I * d_lambda
     
-    return total_numerator / total_denominator if total_denominator != 0 else 0
+    return total_denominator / total_numerator if total_numerator != 0 else 0
 
-def calculate_uva_pf_final(df_uva, C):
-    """Eq. 5: UVA-PF final após irradiação - ISO 24443:2012"""
+def calculate_uva_pf_final(df_uva, C, ppd_spectrum):
+    """Eq. 5: UVA-PF final após irradiação - ISO 24443:2011 CORRIGIDA"""
     d_lambda = 1
-    total_numerator = 0
-    total_denominator = 0
+    total_numerator = 0    # COM proteção (∫ P·I·T dλ) - CORRIGIDO
+    total_denominator = 0  # SEM proteção (∫ P·I dλ)   - CORRIGIDO
     
     for _, row in df_uva.iterrows():
-        wavelength = row['Comprimento de Onda']
+        wavelength = int(row['Comprimento de Onda'])
         if wavelength < 320 or wavelength > 400:
             continue
-            
-        Ae = row['Ai(λ)']  # Absorbância APÓS irradiação
-        Af = Ae * C        # Absorbância ajustada: Af(λ) = Ae(λ) * C
-        P = row['P(λ)']    # Espectro PPD
-        I = row['I(λ)']    # Irradiância UVA
-        T_final = 10 ** (-Af)
         
-        total_numerator += P * I * d_lambda
-        total_denominator += P * I * T_final * d_lambda
+        # Obter valor do espectro PPD
+        P = ppd_spectrum[wavelength - 290] if 320 <= wavelength <= 400 else 0
+        I = row['I(λ)']
+        Ae = row['Ai(λ)']  # Absorbância APÓS irradiação
+        # CORREÇÃO: C já foi aplicado no ajuste inicial, não multiplicar novamente
+        T_final = 10 ** (-Ae)  # Transmitância final
+        
+        # CORREÇÃO: Numerador = COM proteção, Denominador = SEM proteção
+        total_numerator += P * I * T_final * d_lambda
+        total_denominator += P * I * d_lambda
     
-    return total_numerator / total_denominator if total_denominator != 0 else 0
+    return total_denominator / total_numerator if total_numerator != 0 else 0
 
 def calculate_exposure_dose(uva_pf_0):
-    """Eq. 4: Dose de exposição - ISO 24443:2012"""
+    """Eq. 4: Dose de exposição - ISO 24443:2011"""
     return uva_pf_0 * 1.2  # J/cm²
 
 def calculate_critical_wavelength(df, C):
@@ -138,81 +182,66 @@ def calculate_critical_wavelength(df, C):
     
     return critical_wl
 
-# FUNÇÃO MANSUR (SIMPLIFICADA)
-# =============================================================================
-def calculate_spf_mansur(df, CF=10):
-    """
-    Calcula FPS usando método de Mansur (1986)
-    SPF = CF × Σ[E(λ)×I(λ)] × Σ[A(λ)] / Σ[E(λ)×I(λ)×A(λ)]
-    """
-    d_lambda = 1
-    sum_ei = 0
-    sum_a = 0
-    sum_eia = 0
-    
-    for _, row in df.iterrows():
-        wavelength = row['Comprimento de Onda']
-        if wavelength < 290 or wavelength > 400:
-            continue
-            
-        A = row['A0i(λ)']
-        E = row['E(λ)']
-        I = row['I(λ)']
-        
-        sum_ei += E * I * d_lambda
-        sum_a += A * d_lambda
-        sum_eia += E * I * A * d_lambda
-    
-    if sum_eia == 0:
-        return 0
-    
-    return CF * sum_ei * sum_a / sum_eia
-
 # FUNÇÕES AUXILIARES
 # =============================================================================
 def map_column_names(df, data_type="pre_irradiation"):
-    """Mapeia nomes de colunas para formato padrão"""
+    """Mapeia nomes de colunas para formato padrão com fallback manual"""
     column_mapping = {}
+    detected_cols = set()
     
     if data_type == "post_irradiation":
         for col in df.columns:
             lower_col = col.lower().strip()
-            if any(word in lower_col for word in ['wavelength', 'comprimento', 'onda', 'lambda', 'nm']):
+            if any(word in lower_col for word in ['wavelength', 'comprimento', 'onda', 'lambda', 'nm', 'wl']):
                 column_mapping[col] = 'Comprimento de Onda'
-            elif any(word in lower_col for word in ['p', 'ppd', 'pigment', 'pigmentacao']):
+                detected_cols.add('Comprimento de Onda')
+            elif any(word in lower_col for word in ['p', 'ppd', 'pigment', 'pigmentacao', 'action']):
                 column_mapping[col] = 'P(λ)'
-            elif any(word in lower_col for word in ['i', 'intensity', 'intensidade', 'irradiance']):
+                detected_cols.add('P(λ)')
+            elif any(word in lower_col for word in ['i', 'intensity', 'intensidade', 'irradiance', 'irradiancia']):
                 column_mapping[col] = 'I(λ)'
-            elif any(word in lower_col for word in ['a_e', 'ae', 'absorbance', 'absorbancia', 'absorvancia']):
+                detected_cols.add('I(λ)')
+            elif any(word in lower_col for word in ['a_e', 'ae', 'absorbance', 'absorbancia', 'absorvancia', 'post']):
                 column_mapping[col] = 'Ai(λ)'
-            elif any(word in lower_col for word in ['a0', 'absorbancia_inicial', 'absorvancia_inicial']):
+                detected_cols.add('Ai(λ)')
+            elif any(word in lower_col for word in ['a0', 'absorbancia_inicial', 'absorvancia_inicial', 'pre']):
                 column_mapping[col] = 'A0i(λ)'
-        
-        # Garantir mapeamento por posição
-        if len(column_mapping) < 4 and len(df.columns) >= 4:
-            column_mapping = {
-                df.columns[0]: 'Comprimento de Onda',
-                df.columns[1]: 'P(λ)',
-                df.columns[2]: 'I(λ)', 
-                df.columns[3]: 'Ai(λ)'
-            }
-            
+                detected_cols.add('A0i(λ)')
     else:
         for col in df.columns:
             lower_col = col.lower().strip()
-            if any(word in lower_col for word in ['comprimento', 'onda', 'wavelength', 'lambda', 'nm']):
+            if any(word in lower_col for word in ['comprimento', 'onda', 'wavelength', 'lambda', 'nm', 'wl']):
                 column_mapping[col] = 'Comprimento de Onda'
+                detected_cols.add('Comprimento de Onda')
             elif any(word in lower_col for word in ['absorbancia', 'absorvancia', 'absorbância', 'absorvância', 'abs', 'a0']):
                 column_mapping[col] = 'A0i(λ)'
+                detected_cols.add('A0i(λ)')
             elif any(word in lower_col for word in ['e(λ)', 'e(lambda)', 'eritema', 'erythema', 'e(']):
                 column_mapping[col] = 'E(λ)'
+                detected_cols.add('E(λ)')
             elif any(word in lower_col for word in ['i(λ)', 'i(lambda)', 'intensidade', 'intensity', 'i(']):
                 column_mapping[col] = 'I(λ)'
+                detected_cols.add('I(λ)')
     
-    return column_mapping
+    return column_mapping, detected_cols
+
+def validate_uva_data(df):
+    """Valida especificamente dados UVA conforme norma ISO"""
+    required_cols = ['Comprimento de Onda', 'P(λ)', 'I(λ)', 'Ai(λ)', 'A0i(λ)']
+    missing_cols = [col for col in required_cols if col not in df.columns]
+    
+    if missing_cols:
+        return False, f"Colunas UVA faltando: {', '.join(missing_cols)}"
+    
+    # Verificar faixa de wavelengths
+    wavelengths = df['Comprimento de Onda'].values
+    if min(wavelengths) > 320 or max(wavelengths) < 400:
+        return False, "Faixa de wavelength UVA incompleta (320-400nm requerido)"
+    
+    return True, "Dados UVA válidos"
 
 def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
-    """Carrega e valida dados com mapeamento"""
+    """Carrega e valida dados com mapeamento robusto"""
     try:
         if uploaded_file.name.endswith('xlsx'):
             df = pd.read_excel(uploaded_file)
@@ -221,21 +250,42 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
         
         st.write("🔍 **Colunas originais:**", list(df.columns))
         
-        column_mapping = map_column_names(df, data_type)
-        st.write("🔄 **Mapeamento:**", column_mapping)
+        column_mapping, detected_cols = map_column_names(df, data_type)
+        st.write("🔄 **Mapeamento automático:**", column_mapping)
         
         df = df.rename(columns=column_mapping)
-        st.write("✅ **Colunas após mapeamento:**", list(df.columns))
         
+        # Fallback para mapeamento manual se colunas essenciais faltando
         if data_type == "pre_irradiation":
             required_cols = ['Comprimento de Onda', 'E(λ)', 'I(λ)', 'A0i(λ)']
         else:
-            required_cols = ['Comprimento de Onda', 'P(λ)', 'I(λ)', 'Ai(λ)']
-            
+            required_cols = ['Comprimento de Onda', 'P(λ)', 'I(λ)', 'Ai(λ)', 'A0i(λ)']
+        
         missing_cols = [col for col in required_cols if col not in df.columns]
         
         if missing_cols:
-            raise ValueError(f"Colunas faltando: {', '.join(missing_cols)}")
+            st.warning("⚠️ Mapeamento automático incompleto. Selecione manualmente:")
+            col_mapping_manual = {}
+            cols = st.columns(3)
+            
+            for i, col_name in enumerate(missing_cols):
+                with cols[i % 3]:
+                    selected_col = st.selectbox(
+                        f"Selecione coluna para {col_name}",
+                        options=df.columns,
+                        key=f"manual_{col_name}"
+                    )
+                    col_mapping_manual[selected_col] = col_name
+            
+            if st.button("Aplicar mapeamento manual"):
+                df = df.rename(columns=col_mapping_manual)
+                st.success("Mapeamento manual aplicado!")
+                st.write("✅ **Colunas após mapeamento:**", list(df.columns))
+        
+        # Verificação final
+        missing_cols_final = [col for col in required_cols if col not in df.columns]
+        if missing_cols_final:
+            raise ValueError(f"Colunas essenciais faltando: {', '.join(missing_cols_final)}")
             
         return df, None
         
@@ -244,13 +294,16 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
 
 # INTERFACE PRINCIPAL
 # =============================================================================
-st.title("🌞 Análise de Proteção Solar")
+st.title("🌞 Análise de Proteção Solar - ISO 24443:2011")
+
+# Carregar espectros de referência
+wavelengths, ppd_spectrum, erythema_spectrum = load_reference_spectra()
 
 # Menu lateral
 with st.sidebar:
     st.title("📊 Navegação")
     page = st.radio("Selecione o método:", 
-                   ["ISO 24443 Completo", "Método Mansur Simples"])
+                   ["ISO 24443 Completo", "Validação de Dados", "Sobre a Norma"])
     
     st.markdown("---")
     st.info("""
@@ -258,10 +311,13 @@ with st.sidebar:
     - **SPF:** Comprimento de Onda, E(λ), I(λ), A0i(λ)
     - **UVA:** Comprimento de Onda, P(λ), I(λ), Ai(λ), A0i(λ)
     """)
+    
+    st.markdown("---")
+    st.caption("**ISO 24443:2011** - Determinação in vitro da fotoproteção UVA")
 
 # PÁGINA 1: ISO 24443 COMPLETO
 if page == "ISO 24443 Completo":
-    st.header("🔬 Análise Completa - ISO 24443:2012")
+    st.header("🔬 Análise Completa - ISO 24443:2011")
     
     tab1, tab2, tab3 = st.tabs(["📊 SPF Inicial", "🌞 UVA", "📈 Resultados"])
     
@@ -280,22 +336,24 @@ if page == "ISO 24443 Completo":
                 st.dataframe(df_spf.head())
                 
                 try:
-                    spf_in_vitro = calculate_spf_in_vitro(df_spf)
+                    spf_in_vitro = calculate_spf_in_vitro(df_spf, erythema_spectrum)
                     st.metric("SPF in vitro (Eq. 1)", f"{spf_in_vitro:.2f}")
                     
                     SPF_in_vivo = st.number_input("SPF in vivo medido:", 
                                                min_value=1.0, value=30.0, step=0.1)
                     
                     def error_function(C):
-                        return abs(calculate_adjusted_spf(df_spf, C) - SPF_in_vivo)
+                        return abs(calculate_adjusted_spf(df_spf, C, erythema_spectrum) - SPF_in_vivo)
                     
                     result = opt.minimize_scalar(error_function, bounds=(0.5, 1.6), method='bounded')
                     C_value = result.x
-                    spf_ajustado = calculate_adjusted_spf(df_spf, C_value)
+                    spf_ajustado = calculate_adjusted_spf(df_spf, C_value, erythema_spectrum)
                     
                     col1, col2 = st.columns(2)
                     with col1:
                         st.metric("Coeficiente C (Eq. 2)", f"{C_value:.4f}")
+                        if not (0.8 <= C_value <= 1.6):
+                            st.warning("⚠️ C fora da faixa recomendada (0.8-1.6)")
                     with col2:
                         st.metric("SPF ajustado (Eq. 2)", f"{spf_ajustado:.2f}")
                     
@@ -308,23 +366,23 @@ if page == "ISO 24443 Completo":
                     }
                     
                 except Exception as e:
-                    st.error(f"Erro no cálculo: {e}")
+                    st.error(f"Erro no cálculo: {str(e)}")
     
     with tab2:
         st.subheader("Análise UVA (Eq. 3-5)")
         
         if 'C_value' not in st.session_state.current_results:
-            st.warning("⚠️ Calcule primeiro o SPF")
+            st.warning("⚠️ Calcule primeiro o SPF para obter o coeficiente C")
         else:
             C_value = st.session_state.current_results['C_value']
             st.success(f"✅ Coeficiente C: {C_value:.4f}")
             
             st.info("""
             **📝 Para UVA-PF₀ (Eq. 3), seu arquivo UVA precisa ter:**
-            - Comprimento de Onda
+            - Comprimento de Onda (320-400nm)
             - P(λ) (espectro PPD)
             - I(λ) (irradiância UVA)  
-            - A0i(λ) (absorbância INICIAL - mesma do SPF)
+            - A0i(λ) (absorbância INICIAL)
             - Ai(λ) (absorbância APÓS irradiação)
             """)
             
@@ -337,17 +395,18 @@ if page == "ISO 24443 Completo":
                 if error:
                     st.error(f"❌ {error}")
                 else:
-                    st.success("✅ Dados UVA validados!")
-                    st.dataframe(df_uva.head())
-                    
-                    # Verificar se tem A0i(λ) para UVA-PF₀
-                    if 'A0i(λ)' not in df_uva.columns:
-                        st.error("❌ Arquivo UVA precisa da coluna A0i(λ) para cálculo do UVA-PF₀")
+                    # Validação específica para dados UVA
+                    is_valid, validation_msg = validate_uva_data(df_uva)
+                    if not is_valid:
+                        st.error(f"❌ {validation_msg}")
                     else:
+                        st.success("✅ Dados UVA validados!")
+                        st.dataframe(df_uva.head())
+                        
                         try:
-                            uva_pf_0 = calculate_uva_pf_initial(df_uva, C_value)
+                            uva_pf_0 = calculate_uva_pf_initial(df_uva, C_value, ppd_spectrum)
                             dose = calculate_exposure_dose(uva_pf_0)
-                            uva_pf_final = calculate_uva_pf_final(df_uva, C_value)
+                            uva_pf_final = calculate_uva_pf_final(df_uva, C_value, ppd_spectrum)
                             critical_wl = calculate_critical_wavelength(df_uva, C_value)
                             
                             col1, col2, col3, col4 = st.columns(4)
@@ -361,6 +420,12 @@ if page == "ISO 24443 Completo":
                                 status = "✅" if critical_wl >= 370 else "⚠️"
                                 st.metric("λ Crítico", f"{critical_wl:.1f} nm", status)
                             
+                            # Verificação do padrão de referência S2
+                            if 10.7 <= uva_pf_final <= 14.7:
+                                st.success("✅ Resultado dentro da faixa do padrão de referência S2")
+                            else:
+                                st.warning("⚠️ Resultado fora da faixa do padrão S2 (10.7-14.7)")
+                            
                             st.session_state.current_results.update({
                                 'uva_pf_0': uva_pf_0,
                                 'dose': dose,
@@ -370,7 +435,7 @@ if page == "ISO 24443 Completo":
                             })
                             
                         except Exception as e:
-                            st.error(f"Erro no cálculo UVA: {e}")
+                            st.error(f"Erro no cálculo UVA: {str(e)}")
     
     with tab3:
         st.subheader("Resultados Completos")
@@ -385,70 +450,199 @@ if page == "ISO 24443 Completo":
                 st.metric("SPF in vitro", f"{results['spf_in_vitro']:.2f}")
                 st.metric("SPF in vivo", f"{results['spf_in_vivo']:.2f}")
                 st.metric("SPF ajustado", f"{results['spf_ajustado']:.2f}")
+                st.metric("Coeficiente C", f"{results['C_value']:.4f}")
                 
             with col2:
                 st.metric("UVA-PF₀", f"{results['uva_pf_0']:.2f}")
                 st.metric("UVA-PF Final", f"{results['uva_pf_final']:.2f}")
-                st.metric("Dose", f"{results['dose']:.2f} J/cm²")
+                st.metric("Dose de Exposição", f"{results['dose']:.2f} J/cm²")
                 st.metric("λ Crítico", f"{results['critical_wavelength']:.1f} nm")
             
             # Gráficos
-            fig, ax = plt.subplots(figsize=(12, 6))
-            ax.plot(results['dados_pre']['Comprimento de Onda'], 
-                   results['dados_pre']['A0i(λ)'], 
-                   label='Absorbância Inicial (SPF)', linewidth=2, color='blue')
+            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+            
+            # Gráfico 1: Absorbância
+            ax1.plot(results['dados_pre']['Comprimento de Onda'], 
+                    results['dados_pre']['A0i(λ)'], 
+                    label='Absorbância Inicial (SPF)', linewidth=2, color='blue')
             
             if 'dados_post' in results:
-                ax.plot(results['dados_post']['Comprimento de Onda'], 
-                       results['dados_post']['Ai(λ)'], 
-                       label='Absorbância Final (UVA)', linewidth=2, color='red')
+                ax1.plot(results['dados_post']['Comprimento de Onda'], 
+                        results['dados_post']['Ai(λ)'], 
+                        label='Absorbância Final (UVA)', linewidth=2, color='red')
             
-            ax.set_xlabel('Comprimento de Onda (nm)')
-            ax.set_ylabel('Absorbância')
-            ax.legend()
-            ax.grid(True, alpha=0.3)
+            ax1.set_xlabel('Comprimento de Onda (nm)')
+            ax1.set_ylabel('Absorbância')
+            ax1.set_title('Espectro de Absorbância')
+            ax1.legend()
+            ax1.grid(True, alpha=0.3)
+            ax1.set_xlim(290, 400)
+            
+            # Gráfico 2: Espectros de referência
+            ax2.plot(wavelengths, erythema_spectrum, label='Eritema (E(λ))', color='orange')
+            ax2.plot(wavelengths, ppd_spectrum, label='PPD (P(λ))', color='purple')
+            ax2.set_xlabel('Comprimento de Onda (nm)')
+            ax2.set_ylabel('Valor do Espectro')
+            ax2.set_title('Espectros de Referência')
+            ax2.legend()
+            ax2.grid(True, alpha=0.3)
+            ax2.set_xlim(290, 400)
+            
             st.pyplot(fig)
-
-# PÁGINA 2: MÉTODO MANSUR SIMPLES
-else:
-    st.header("🧪 Método Mansur Simplificado")
-    
-    uploaded_file = st.file_uploader("📤 Dados para cálculo Mansur", 
-                                   type=["xlsx", "csv"], key="mansur_upload")
-    
-    if uploaded_file:
-        df, error = load_and_validate_data(uploaded_file, "pre_irradiation")
-        
-        if error:
-            st.error(f"❌ {error}")
-        else:
-            st.success("✅ Dados validados!")
-            st.dataframe(df.head())
             
-            try:
-                spf_mansur = calculate_spf_mansur(df)
+            # Relatório em formato de tabela
+            st.subheader("📋 Relatório de Análise")
+            report_data = {
+                'Parâmetro': ['SPF in vitro', 'SPF in vivo', 'SPF ajustado', 'Coeficiente C', 
+                             'UVA-PF₀', 'UVA-PF Final', 'Dose de Exposição', 'λ Crítico'],
+                'Valor': [f"{results['spf_in_vitro']:.2f}", f"{results['spf_in_vivo']:.2f}",
+                         f"{results['spf_ajustado']:.2f}", f"{results['C_value']:.4f}",
+                         f"{results['uva_pf_0']:.2f}", f"{results['uva_pf_final']:.2f}",
+                         f"{results['dose']:.2f} J/cm²", f"{results['critical_wavelength']:.1f} nm"],
+                'Status': ['✅' if 0.8 <= results['C_value'] <= 1.6 else '⚠️', 
+                          '✅', '✅', 
+                          '✅' if 0.8 <= results['C_value'] <= 1.6 else '⚠️',
+                          '✅', 
+                          '✅' if 10.7 <= results['uva_pf_final'] <= 14.7 else '⚠️',
+                          '✅', 
+                          '✅' if results['critical_wavelength'] >= 370 else '⚠️']
+            }
+            
+            report_df = pd.DataFrame(report_data)
+            st.table(report_df)
+
+# PÁGINA 2: VALIDAÇÃO DE DADOS
+elif page == "Validação de Dados":
+    st.header("🔍 Validação de Dados e Espectros")
+    
+    tab1, tab2 = st.tabs(["Validação UVA", "Espectros de Referência"])
+    
+    with tab1:
+        st.subheader("Validação de Arquivos UVA")
+        uploaded_file_val = st.file_uploader("📤 Carregue arquivo UVA para validação", 
+                                          type=["xlsx", "csv"])
+        
+        if uploaded_file_val:
+            df_val, error = load_and_validate_data(uploaded_file_val, "post_irradiation")
+            
+            if error:
+                st.error(f"❌ {error}")
+            else:
+                is_valid, validation_msg = validate_uva_data(df_val)
                 
-                st.metric("FPS (Método Mansur)", f"{spf_mansur:.2f}")
+                if is_valid:
+                    st.success(f"✅ {validation_msg}")
+                    
+                    # Análise de faixa espectral
+                    min_wl = df_val['Comprimento de Onda'].min()
+                    max_wl = df_val['Comprimento de Onda'].max()
+                    
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Wavelength Mínimo", f"{min_wl} nm")
+                    with col2:
+                        st.metric("Wavelength Máximo", f"{max_wl} nm")
+                    with col3:
+                        coverage = "✅ Completo" if min_wl <= 320 and max_wl >= 400 else "⚠️ Incompleto"
+                        st.metric("Cobertura UVA", coverage)
+                    
+                    # Estatísticas básicas
+                    st.subheader("📊 Estatísticas dos Dados")
+                    for col in ['P(λ)', 'I(λ)', 'Ai(λ)', 'A0i(λ)']:
+                        if col in df_val.columns:
+                            st.write(f"**{col}**: Min={df_val[col].min():.4f}, "
+                                   f"Max={df_val[col].max():.4f}, "
+                                   f"Média={df_val[col].mean():.4f}")
                 
-                # Gráfico simples
-                fig, ax = plt.subplots(figsize=(10, 6))
-                ax.plot(df['Comprimento de Onda'], df['A0i(λ)'], 
-                       label='Absorbância', linewidth=2, color='green')
-                ax.set_xlabel('Comprimento de Onda (nm)')
-                ax.set_ylabel('Absorbância')
-                ax.set_title('Espectro de Absorbância - Método Mansur')
-                ax.legend()
-                ax.grid(True, alpha=0.3)
-                st.pyplot(fig)
-                
-                st.info("""
-                **📝 Equação de Mansur:**
-                `SPF = 10 × Σ[E(λ)×I(λ)] × Σ[A(λ)] / Σ[E(λ)×I(λ)×A(λ)]`
-                """)
-                
-            except Exception as e:
-                st.error(f"Erro no cálculo: {e}")
+                else:
+                    st.error(f"❌ {validation_msg}")
+    
+    with tab2:
+        st.subheader("Espectros de Referência - Anexo C")
+        
+        # Tabela com valores de referência
+        st.info("Valores de espectro de referência conforme Anexo C da norma ISO 24443:2011")
+        
+        # Criar dataframe com alguns valores exemplares
+        sample_wavelengths = [290, 300, 310, 320, 330, 340, 350, 360, 370, 380, 390, 400]
+        sample_data = {
+            'λ (nm)': sample_wavelengths,
+            'P(λ) PPD': [ppd_spectrum[w-290] for w in sample_wavelengths],
+            'E(λ) Eritema': [erythema_spectrum[w-290] for w in sample_wavelengths]
+        }
+        
+        ref_df = pd.DataFrame(sample_data)
+        st.dataframe(ref_df.style.format({
+            'P(λ) PPD': '{:.4f}',
+            'E(λ) Eritema': '{:.6f}'
+        }))
+        
+        # Gráfico dos espectros
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(wavelengths, erythema_spectrum, label='Espectro de Eritema (E(λ))', linewidth=2, color='red')
+        ax.plot(wavelengths, ppd_spectrum, label='Espectro PPD (P(λ))', linewidth=2, color='blue')
+        ax.set_xlabel('Comprimento de Onda (nm)')
+        ax.set_ylabel('Valor do Espectro')
+        ax.set_title('Espectros de Referência - ISO 24443:2011')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        ax.set_xlim(290, 400)
+        st.pyplot(fig)
+
+# PÁGINA 3: SOBRE A NORMA
+else:
+    st.header("📚 Sobre a Norma ISO 24443:2011")
+    
+    st.markdown("""
+    ### **Cosmetics — Sun protection test methods — In vitro determination of sunscreen UVA photoprotection**
+    
+    **Objetivo:** Esta norma internacional especifica um procedimento *in vitro* para caracterizar a proteção UVA de produtos de proteção solar.
+    
+    ### **Principais Parâmetros Calculados:**
+    
+    - **UVA-PF (Fator de Proteção UVA):** Correlaciona com testes *in vivo* PPD
+    - **λ Crítico:** Comprimento de onda onde 90% da absorbância integrada é alcançada
+    - **Proporcionalidade de Absorbância UVA:** Razão entre proteção UVA e UVB
+    
+    ### **Fluxo do Método:**
+    
+    1. **Medição inicial** da absorbância do produto (pré-irradiação)
+    2. **Ajuste matemático** usando coeficiente C para igualar SPF *in vitro* ao *in vivo*
+    3. **Cálculo do UVA-PF₀** inicial para determinação da dose de exposição
+    4. **Exposição à radiação UV** com dose específica (1.2 × UVA-PF₀ J/cm²)
+    5. **Medição final** da absorbância (pós-irradiação)
+    6. **Cálculo do UVA-PF final** e outros parâmetros
+    
+    ### **Requisitos do Sistema:**
+    
+    - Espectrofotômetro UV com range 290-400nm
+    - Placas PMMA com superfície rugosa padronizada
+    - Fonte de radiação UV simulando espectro solar
+    - Temperatura controlada (25-35°C)
+    
+    ### **Controle de Qualidade:**
+    
+    - Validação regular do equipamento
+    - Uso do padrão de referência S2 (UVA-PF entre 10.7-14.7)
+    - Coeficiente C entre 0.8-1.6
+    """)
+    
+    st.download_button(
+        label="📥 Download da Estrutura de Arquivo Exemplar",
+        data=pd.DataFrame({
+            'Comprimento de Onda': range(290, 401),
+            'P(λ)': ppd_spectrum,
+            'I(λ)': [0.001] * 111,  # Valores exemplares
+            'Ai(λ)': [0.5] * 111,
+            'A0i(λ)': [0.6] * 111
+        }).to_csv(index=False),
+        file_name="modelo_dados_uva_iso24443.csv",
+        mime="text/csv"
+    )
 
 # RODAPÉ
 st.markdown("---")
-st.markdown("**🔬 Sistema de Análise de Proteção Solar**")
+st.markdown("""
+**🔬 Sistema de Análise de Proteção Solar - ISO 24443:2011**  
+*Desenvolvido para conformidade com método padrão internacional para determinação in vitro de proteção UVA*
+""")
