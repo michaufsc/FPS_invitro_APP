@@ -68,10 +68,6 @@ def load_reference_spectra():
     
     return wavelengths, ppd_spectrum, erythema_spectrum, uv_ssr_spectrum
 
-    erythema_spectrum = erythema_values
-    
-    return wavelengths, ppd_spectrum, erythema_spectrum
-
 # Sistema de sessão
 if 'uploaded_data' not in st.session_state:
     st.session_state.uploaded_data = {}
@@ -363,11 +359,11 @@ if page == "ISO 24443 Completo":
                                                min_value=1.0, value=30.0, step=0.1)
                     
                     def error_function(C):
-                        return abs(calculate_adjusted_spf(df_spf, C, erythema_spectrum) - SPF_in_vivo)
+                        return abs(calculate_adjusted_spf(df_spf, C, erythema_spectrum, uv_ssr_spectrum) - SPF_in_vivo)
                     
                     result = opt.minimize_scalar(error_function, bounds=(0.5, 1.6), method='bounded')
                     C_value = result.x
-                    spf_ajustado = calculate_adjusted_spf(df_spf, C_value, erythema_spectrum, uv_ssr_spectrum)
+spf_ajustado = calculate_adjusted_spf(df_spf, C_value, erythema_spectrum, uv_ssr_spectrum)
                     
                     col1, col2 = st.columns(2)
                     with col1:
