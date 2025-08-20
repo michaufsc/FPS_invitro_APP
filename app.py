@@ -363,7 +363,7 @@ if page == "ISO 24443 Completo":
                     
                     result = opt.minimize_scalar(error_function, bounds=(0.5, 1.6), method='bounded')
                     C_value = result.x
-spf_ajustado = calculate_adjusted_spf(df_spf, C_value, erythema_spectrum, uv_ssr_spectrum)
+                    spf_ajustado = calculate_adjusted_spf(df_spf, C_value, erythema_spectrum, uv_ssr_spectrum)
                     
                     col1, col2 = st.columns(2)
                     with col1:
