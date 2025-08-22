@@ -82,7 +82,7 @@ def calculate_spf_in_vitro(df, erythema_spectrum):
         # Obter valor do espectro de referência
         idx = wavelength - 290
         E = erythema_spectrum[idx]
-        I = row['I(λ)']  # Usar I(λ) do arquivo
+        I = row['I(λ)'] if 'I(λ)' in row else 1.0  # Usar I(λ) do arquivo ou padrão
         A0 = row['A0i(λ)']
         T = 10 ** (-A0)  # Transmitância
         
@@ -104,7 +104,7 @@ def calculate_adjusted_spf(df, C, erythema_spectrum):
         
         idx = wavelength - 290
         E = erythema_spectrum[idx]
-        I = row['I(λ)']  # Usar I(λ) do arquivo
+        I = row['I(λ)'] if 'I(λ)' in row else 1.0  # Usar I(λ) do arquivo ou padrão
         A0 = row['A0i(λ)']
         T_adjusted = 10 ** (-A0 * C)  # Transmitância ajustada
         
@@ -225,7 +225,7 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
         # Limpar nomes de colunas
         df.columns = [str(col).strip() for col in df.columns]
         
-        # Mapeamento para nomes em português
+        # Mapeamento para nomes em português - ATUALIZADO PARA SEUS ARQUIVOS
         column_mapping = {}
         for col in df.columns:
             col_lower = col.lower()
@@ -240,6 +240,8 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
                 column_mapping[col] = 'Ai(λ)'
             elif any(x in col_lower for x in ['a0', 'a_0', 'absorbancia inicial', 'absorvancia inicial']):
                 column_mapping[col] = 'A0i(λ)'
+            elif any(x in col_lower for x in ['absorbancia', 'absorvancia', 'absorbance']):
+                column_mapping[col] = 'A0i(λ)'  # Mapeamento específico para seus arquivos
             elif any(x in col_lower for x in ['e(', 'e (', 'eritema', 'erythema']):
                 column_mapping[col] = 'E(λ)'
         
@@ -266,13 +268,14 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
                 selected = st.selectbox(
                     f"Selecione a coluna para {col_name}",
                     options=df.columns,
-                    key=f"manual_{col_name}"
+                    key=f"manual_{col_name}_{datetime.now().timestamp()}"
                 )
                 manual_mapping[selected] = col_name
             
             if st.button("Aplicar Mapeamento Manual"):
                 df = df.rename(columns=manual_mapping)
                 st.success("Mapeamento aplicado!")
+                st.rerun()
         
         # Verificação final
         missing_final = [col for col in required if col not in df.columns]
@@ -289,6 +292,9 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
         for col in df.columns:
             if col != 'Comprimento de Onda':
                 df[col] = pd.to_numeric(df[col], errors='coerce')
+        
+        # Remover linhas com valores NaN
+        df = df.dropna()
         
         st.success(f"✅ Dados carregados com sucesso! {len(df)} linhas válidas.")
         return df, None
@@ -443,7 +449,7 @@ if page == "ISO 24443 Completo":
                             if 10.7 <= uva_pf_final <= 14.7:
                                 st.success("✅ Resultado dentro da faixa do padrão de referência S2")
                             else:
-                                st.warning("⚠️ Resultado fora da faixa do padrão S2 (10.7-14.7)")
+                                st.warning("⚠️ Resultado fuera da faixa do padrão S2 (10.7-14.7)")
                             
                             st.session_state.current_results.update({
                                 'uva_pf_0': uva_pf_0,
@@ -529,6 +535,15 @@ if page == "ISO 24443 Completo":
             
             report_df = pd.DataFrame(report_data)
             st.table(report_df)
+            
+            # Botão para salvar resultados
+            if st.button("💾 Salvar Resultados"):
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                st.session_state.analysis_history.append({
+                    'timestamp': timestamp,
+                    'results': results
+                })
+                st.success(f"Resultados salvos com ID: {timestamp}")
 
 # PÁGINA 2: VALIDAÇÃO DE DADOS
 elif page == "Validação de Dados":
@@ -640,3 +655,8 @@ else:
     
     **Referência:** ISO 24443:2021 - Determination of sunscreen UVA photoprotection in vitro
     """)
+
+# Adicionar informações de uso
+with st.sidebar:
+    st.markdown("---")
+    st.caption("Desenvolvido para análise de dados de proteção solar")
