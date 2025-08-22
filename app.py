@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -46,10 +45,10 @@ def load_reference_spectra():
         1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 0.8054,  # 290-299
         0.6486, 0.5224, 0.4207, 0.3388, 0.2729, 0.2198, 0.1770, 0.1426, 0.1148, 0.0925,  # 300-309
         0.0745, 0.0600, 0.0483, 0.0389, 0.0313, 0.0252, 0.0203, 0.0164, 0.0132, 0.0106,  # 310-319
-        0.0086, 0.0069, 0.0055, 0.0045, 0.0036, 极 0.0029, 0.0023, 0.0019, 0.0015, 0.0012,  # 320-329
+        0.0086, 0.0069, 0.0055, 0.0045, 0.0036, 0.0029, 0.0023, 0.0019, 0.0015, 0.0012,  # 320-329
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 330-339
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 340-349
-        0.0010, 0.0010, 0.0010, 0.0010, 0.极 0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 350-359
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 350-359
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 360-369
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 370-379
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 380-389
@@ -168,7 +167,7 @@ def calculate_critical_wavelength(df, C):
               (df['Comprimento de Onda'] <= 400)].copy()
     
     wavelengths = df_uv['Comprimento de Onda'].to_numpy()
-    absorbance = df_uv['Ai(λ)'].to_numpy() * C
+    absorbance = df_uv['A0i(λ)'].to_numpy() * C
     
     total_area = np.trapz(absorbance, wavelengths)
     target_area = 0.9 * total_area
@@ -630,3 +629,14 @@ else:
     2. **Ajuste matemático** usando coeficiente C para igualar SPF *in vitro* ao *in vivo*
     3. **Cálculo do UVA-PF₀** inicial para determinação da dose de exposição
     4. **Exposição à radiação UV**
+    5. **Medição final** da absorbância (pós-irradiação)
+    6. **Cálculo do UVA-PF final** e λ crítico
+    
+    ### **Requisitos de Conformidade:**
+    
+    - **λ Crítico:** ≥ 370 nm
+    - **UVA-PF/SPF:** ≥ 1/3 para proteção UVA balanceada
+    - **Faixa espectral:** 320-400 nm para análise UVA
+    
+    **Referência:** ISO 24443:2021 - Determination of sunscreen UVA photoprotection in vitro
+    """)
