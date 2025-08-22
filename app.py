@@ -49,7 +49,7 @@ def load_reference_spectra():
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 330-339
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 340-349
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 350-359
-        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 360-369
+        0.0010, 极.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 360-369
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 370-379
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 380-389
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 390-399
@@ -225,25 +225,41 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
         # Limpar nomes de colunas
         df.columns = [str(col).strip() for col in df.columns]
         
-        # Mapeamento para nomes em português - ATUALIZADO PARA SEUS ARQUIVOS
+        # Mapeamento para nomes em português - CORRIGIDO
         column_mapping = {}
+        used_mappings = set()
+        
         for col in df.columns:
             col_lower = col.lower()
+            original_col = col
             
             if any(x in col_lower for x in ['comprimento', 'onda', 'wavelength', 'lambda', 'nm', 'wl']):
-                column_mapping[col] = 'Comprimento de Onda'
+                if 'Comprimento de Onda' not in used_mappings:
+                    column_mapping[col] = 'Comprimento de Onda'
+                    used_mappings.add('Comprimento de Onda')
             elif any(x in col_lower for x in ['p(', 'p (', 'ppd', 'pigment']):
-                column_mapping[col] = 'P(λ)'
+                if 'P(λ)' not in used_mappings:
+                    column_mapping[col] = 'P(λ)'
+                    used_mappings.add('P(λ)')
             elif any(x in col_lower for x in ['i(', 'i (', 'intensidade', 'irradiancia', 'irradiance']):
-                column_mapping[col] = 'I(λ)'
+                if 'I(λ)' not in used_mappings:
+                    column_mapping[col] = 'I(λ)'
+                    used_mappings.add('I(λ)')
             elif any(x in col_lower for x in ['ai', 'a_i', 'absorbancia após', 'absorvancia após']):
-                column_mapping[col] = 'Ai(λ)'
+                if 'Ai(λ)' not in used_mappings:
+                    column_mapping[col] = 'Ai(λ)'
+                    used_mappings.add('Ai(λ)')
             elif any(x in col_lower for x in ['a0', 'a_0', 'absorbancia inicial', 'absorvancia inicial']):
+                if 'A0i(λ)' not in used_mappings:
+                    column_mapping[col] = 'A0i(λ)'
+                    used_mappings.add('A0i(λ)')
+            elif any(x in col_lower for x in ['absorbancia', 'absorvancia', 'absorbance']) and 'A0i(λ)' not in used_mappings:
                 column_mapping[col] = 'A0i(λ)'
-            elif any(x in col_lower for x in ['absorbancia', 'absorvancia', 'absorbance']):
-                column_mapping[col] = 'A0i(λ)'  # Mapeamento específico para seus arquivos
+                used_mappings.add('A0i(λ)')
             elif any(x in col_lower for x in ['e(', 'e (', 'eritema', 'erythema']):
-                column_mapping[col] = 'E(λ)'
+                if 'E(λ)' not in used_mappings:
+                    column_mapping[col] = 'E(λ)'
+                    used_mappings.add('E(λ)')
         
         # Aplicar mapeamento
         df = df.rename(columns=column_mapping)
@@ -265,12 +281,14 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
             manual_mapping = {}
             
             for col_name in missing:
-                selected = st.selectbox(
-                    f"Selecione a coluna para {col_name}",
-                    options=df.columns,
-                    key=f"manual_{col_name}_{datetime.now().timestamp()}"
-                )
-                manual_mapping[selected] = col_name
+                available_cols = [col for col in df.columns if col not in manual_mapping.values()]
+                if available_cols:
+                    selected = st.selectbox(
+                        f"Selecione a coluna para {col_name}",
+                        options=available_cols,
+                        key=f"manual_{col_name}_{datetime.now().timestamp()}"
+                    )
+                    manual_mapping[selected] = col_name
             
             if st.button("Aplicar Mapeamento Manual"):
                 df = df.rename(columns=manual_mapping)
@@ -295,6 +313,9 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
         
         # Remover linhas com valores NaN
         df = df.dropna()
+        
+        # Remover colunas vazias
+        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
         
         st.success(f"✅ Dados carregados com sucesso! {len(df)} linhas válidas.")
         return df, None
@@ -335,6 +356,10 @@ with st.sidebar:
     **📋 Formatos esperados:**
     - **SPF:** Comprimento de Onda, E(λ), I(λ), A0i(λ)
     - **UVA:** Comprimento de Onda, P(λ), I(λ), Ai(λ), A0i(λ)
+    
+    **🔧 Para seus arquivos:**
+    - Mapeie manualmente se necessário
+    - Ignore colunas "Unnamed" (são colunas vazias)
     """)
     
     st.markdown("---")
@@ -655,8 +680,3 @@ else:
     
     **Referência:** ISO 24443:2021 - Determination of sunscreen UVA photoprotection in vitro
     """)
-
-# Adicionar informações de uso
-with st.sidebar:
-    st.markdown("---")
-    st.caption("Desenvolvido para análise de dados de proteção solar")
