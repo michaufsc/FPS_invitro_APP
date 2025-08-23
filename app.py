@@ -11,7 +11,7 @@ st.set_page_config(
     page_title="Análise de Proteção Solar - ISO 24443:2011",
     page_icon="🌞",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_st
 )
 
 # Configurar pandas para melhor compatibilidade
@@ -229,7 +229,7 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
                     used_mappings.add('Comprimento de Onda')
             elif any(x in col_lower for x in ['p(', 'p (', 'ppd', 'pigment']):
                 if 'P(λ)' not in used_mappings:
-                    column_mapping[极] = 'P(λ)'
+                    column_mapping[col] = 'P(λ)'
                     used_mappings.add('P(λ)')
             elif any(x in col_lower for x in ['i(', 'i (', 'intensidade', 'irradiancia', 'irradiance']):
                 if 'I(λ)' not in used_mappings:
@@ -359,7 +359,7 @@ if page == "ISO 24443 Completo":
                 st.dataframe(df_spf.head())
                 
                 try:
-                    spf_in_vitro = calculate_spf_in_vitro(df_sp极, erythema_spectrum)
+                    spf_in_vitro = calculate_spf_in_vitro(df_spf, erythema_spectrum)
                     st.metric("SPF in vitro (Eq. 1)", f"{spf_in_vitro:.2f}")
                     
                     SPF_in_vivo = st.number_input("SPF in vivo medido:", 
@@ -520,7 +520,7 @@ if page == "ISO 24443 Completo":
                           '✅', '✅', 
                           '✅' if 0.8 <= results['C_value'] <= 1.6 else '⚠️',
                           '✅', 
-                          '✅' if 10.7 <= results['uva_pf_f极'] <= 14.7 else '⚠️',
+                          '✅' if 10.7 <= results[''uva_pf_final'] <= 14.7 else '⚠️',
                           '✅', 
                           '✅' if results['critical_wavelength'] >= 370 else '⚠️']
             }
@@ -529,7 +529,7 @@ if page == "ISO 24443 Completo":
             st.table(report_df)
             
             if st.button("💾 Salvar Resultados"):
-                timestamp = datetime.now().strftime("%Y%m%d_%H%极%S")
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 st.session_state.analysis_history.append({
                     'timestamp': timestamp,
                     'results': results
