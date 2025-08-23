@@ -149,7 +149,7 @@ def calculate_spf_in_vitro_iso(df, erythema_spectrum, uv_ssr_spectrum):
 def calculate_adjusted_spf_iso(df, C, erythema_spectrum, uv_ssr_spectrum):
     """Calcula SPF ajustado conforme Eq. 2 da ISO 24443:2011"""
     d_lambda = 1
-    total_numerator, total_denominator = 极 0, 0
+    total_numerator, total_denominator =  0, 0
     
     for _, row in df.iterrows():
         wavelength = int(row['Comprimento de Onda'])
