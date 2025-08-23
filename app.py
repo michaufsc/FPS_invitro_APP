@@ -26,12 +26,15 @@ pd.set_option('display.width', 1000)
 logger = logging.getLogger('UVA_Analysis')
 logger.setLevel(logging.INFO)
 
-import numpy as np
-import pandas as pd
-import streamlit as st
-import matplotlib.pyplot as plt
-from scipy.integrate import trapz
+# Sistema de sessão
+if 'uploaded_data' not in st.session_state:
+    st.session_state.uploaded_data = {}
+if 'analysis_history' not in st.session_state:
+    st.session_state.analysis_history = []
+if 'current_results' not in st.session_state:
+    st.session_state.current_results = {}
 
+# FUNÇÕES DE CÁLCULO
 def load_reference_spectra():
     """Carrega espectros de referência com tamanhos garantidos (111 valores - ISO 24443)"""
     wavelengths = np.arange(290, 401)  # 111 valores: 290 a 400 nm
@@ -87,15 +90,6 @@ def load_reference_spectra():
     
     return wavelengths, ppd_spectrum, erythema_spectrum, uv_ssr_spectrum, uva_spectrum
 
-# Sistema de sessão
-if 'uploaded_data' not in st.session_state:
-    st.session_state.uploaded_data = {}
-if 'analysis_history' not in st.session_state:
-    st.session_state.analysis_history = []
-if 'current_results' not in st.session_state:
-    st.session_state.current_results = {}
-
-# FUNÇÕES DE CÁLCULO
 def get_spectrum_value(wavelength, spectrum_array, min_wavelength=290):
     idx = wavelength - min_wavelength
     if 0 <= idx < len(spectrum_array):
@@ -303,6 +297,107 @@ def validate_uva_data(df):
     
     return True, "Dados UVA válidos"
 
+# FUNÇÕES PARA MELHORAR OS GRÁFICOS
+def create_absorbance_plot(df_pre, df_post=None, critical_wavelength=None):
+    """Cria gráfico de absorbância com design melhorado"""
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Plotar dados de pré-irradiação
+    ax.plot(df_pre['Comprimento de Onda'], df_pre['A0i(λ)'], 
+            label='Absorbância Inicial (A0i(λ))', linewidth=2, color='#1f77b4')
+    
+    # Plotar dados de pós-irradiação se disponíveis
+    if df_post is not None and 'Ai(λ)' in df_post.columns:
+        ax.plot(df_post['Comprimento de Onda'], df_post['Ai(λ)'], 
+                label='Absorbância Após Irradiação (Ai(λ))', linewidth=2, color='#ff7f0e')
+    
+    # Adicionar linha do comprimento de onda crítico se disponível
+    if critical_wavelength:
+        ax.axvline(x=critical_wavelength, color='red', linestyle='--', 
+                  label=f'λ Crítico ({critical_wavelength:.1f} nm)')
+        ax.text(critical_wavelength + 2, ax.get_ylim()[1]*0.9, 
+               f'λc = {critical_wavelength:.1f} nm', color='red', fontweight='bold')
+    
+    # Melhorar a aparência do gráfico
+    ax.set_xlabel('Comprimento de Onda (nm)', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Absorbância', fontsize=12, fontweight='bold')
+    ax.set_title('Espectro de Absorbância UV', fontsize=14, fontweight='bold')
+    ax.legend(loc='best', frameon=True, shadow=True)
+    ax.grid(True, alpha=0.3)
+    ax.set_xlim(290, 400)
+    
+    # Adicionar áreas de UVB e UVA
+    ax.axvspan(290, 320, alpha=0.1, color='blue', label='UVB')
+    ax.axvspan(320, 400, alpha=0.1, color='red', label='UVA')
+    
+    # Adicionar anotações
+    ax.text(300, ax.get_ylim()[1]*0.8, 'UVB', color='blue', fontweight='bold', ha='center')
+    ax.text(360, ax.get_ylim()[1]*0.8, 'UVA', color='red', fontweight='bold', ha='center')
+    
+    plt.tight_layout()
+    return fig
+
+def create_reference_spectra_plot(wavelengths, ppd_spectrum, erythema_spectrum, uva_spectrum):
+    """Cria gráfico dos espectros de referência com design melhorado"""
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    # Plotar espectros de referência
+    ax.plot(wavelengths, erythema_spectrum, label='Eritema CIE (E(λ))', 
+            linewidth=2, color='#2ca02c', alpha=0.8)
+    ax.plot(wavelengths, ppd_spectrum, label='PPD (P(λ))', 
+            linewidth=2, color='#d62728', alpha=0.8)
+    ax.plot(wavelengths, uva_spectrum, label='Irradiância UVA (I(λ))', 
+            linewidth=2, color='#9467bd', alpha=0.8)
+    
+    # Melhorar a aparência do gráfico
+    ax.set_xlabel('Comprimento de Onda (nm)', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Valor Normalizado', fontsize=12, fontweight='bold')
+    ax.set_title('Espectros de Referência para Cálculos', fontsize=14, fontweight='bold')
+    ax.legend(loc='upper right', frameon=True, shadow=True)
+    ax.grid(True, alpha=0.3)
+    ax.set_xlim(290, 400)
+    
+    # Adicionar áreas de UVB e UVA
+    ax.axvspan(290, 320, alpha=0.1, color='blue')
+    ax.axvspan(320, 400, alpha=0.1, color='red')
+    
+    # Adicionar anotações
+    ax.text(300, ax.get_ylim()[1]*0.9, 'UVB', color='blue', fontweight='bold', ha='center')
+    ax.text(360, ax.get_ylim()[1]*0.9, 'UVA', color='red', fontweight='bold', ha='center')
+    
+    plt.tight_layout()
+    return fig
+
+def create_protection_factor_chart(results):
+    """Cria gráfico de barras para fatores de proteção"""
+    labels = ['SPF in vitro', 'SPF Mansur', 'SPF in vivo', 'SPF ajustado', 'UVA-PF₀', 'UVA-PF Final']
+    values = [
+        results.get('spf_in_vitro', 0),
+        results.get('spf_mansur', 0),
+        results.get('spf_in_vivo', 0),
+        results.get('spf_ajustado', 0),
+        results.get('uva_pf_0', 0),
+        results.get('uva_pf_final', 0)
+    ]
+    
+    colors = ['#1f77b4', '#aec7e8', '#ff7f0e', '#ffbb78', '#2ca02c', '#98df8a']
+    
+    fig, ax = plt.subplots(figsize=(10, 6))
+    bars = ax.bar(labels, values, color=colors, alpha=0.8)
+    
+    # Adicionar valores nas barras
+    for i, v in enumerate(values):
+        ax.text(i, v + max(values)*0.01, f'{v:.2f}', ha='center', fontweight='bold')
+    
+    # Melhorar a aparência do gráfico
+    ax.set_ylabel('Valor do Fator de Proteção', fontsize=12, fontweight='bold')
+    ax.set_title('Comparação dos Fatores de Proteção', fontsize=14, fontweight='bold')
+    plt.xticks(rotation=45, ha='right')
+    ax.grid(True, alpha=0.3, axis='y')
+    
+    plt.tight_layout()
+    return fig
+
 # GERAÇÃO DE RELATÓRIO PDF
 def generate_pdf_report(results):
     from reportlab.lib.pagesizes import A4
@@ -364,6 +459,17 @@ def main():
         
         with tab1:
             st.subheader("Cálculo do SPF (Eq. 1-2) + Mansur")
+            
+            # Adicionar informações para o usuário
+            with st.expander("ℹ️ Instruções"):
+                st.markdown("""
+                **Para análise SPF:**
+                1. Faça upload de um arquivo com dados de absorbância inicial
+                2. O arquivo deve conter pelo menos as colunas: **Comprimento de Onda** e **A0i(λ)**
+                3. Formatos suportados: CSV (separador ; ou ,) ou Excel
+                4. Os dados devem cobrir a faixa de 290-400nm
+                """)
+            
             uploaded_file_spf = st.file_uploader("Dados PRÉ-IRRADIAÇÃO (A0i(λ))", type=["csv", "xlsx"], key="spf_upload")
             
             if uploaded_file_spf:
@@ -372,6 +478,11 @@ def main():
                     st.error(error)
                 else:
                     st.success("Dados SPF validados!")
+                    
+                    # Visualização rápida dos dados
+                    with st.expander("Visualizar dados carregados"):
+                        st.dataframe(df_spf.head(10))
+                        st.write(f"Total de {len(df_spf)} pontos espectrais")
                     
                     # Cálculo SPF in vitro
                     spf_in_vitro = calculate_spf_in_vitro(df_spf, erythema_spectrum, uv_ssr_spectrum)
@@ -384,7 +495,8 @@ def main():
                         st.metric("SPF in vitro (Eq. 1)", f"{spf_in_vitro:.2f}")
                         st.metric("SPF Mansur Simplificado", f"{spf_mansur:.2f}")
                     
-                    SPF_in_vivo = st.number_input("SPF in vivo medido:", min_value=1.0, value=30.0, step=0.1)
+                    SPF_in_vivo = st.number_input("SPF in vivo medido:", min_value=1.0, value=30.0, step=0.1,
+                                                 help="Valor do SPF determinado in vivo para calibrar o coeficiente C")
                     
                     def error_function(C):
                         return abs(calculate_adjusted_spf(df_spf, C, erythema_spectrum, uv_ssr_spectrum) - SPF_in_vivo)
@@ -396,6 +508,11 @@ def main():
                     with col2:
                         st.metric("Coeficiente C (Eq. 2)", f"{C_value:.4f}")
                         st.metric("SPF ajustado (Eq. 2)", f"{spf_ajustado:.2f}")
+                    
+                    # Gráfico de absorbância inicial
+                    st.subheader("Visualização dos Dados")
+                    fig_absorbance = create_absorbance_plot(df_spf)
+                    st.pyplot(fig_absorbance)
                     
                     st.session_state.current_results.update({
                         'spf_in_vitro': spf_in_vitro,
@@ -415,6 +532,16 @@ def main():
                 C_value = st.session_state.current_results['C_value']
                 st.success(f"Coeficiente C: {C_value:.4f}")
                 
+                # Adicionar informações para o usuário
+                with st.expander("ℹ️ Instruções"):
+                    st.markdown("""
+                    **Para análise UVA:**
+                    1. Faça upload de um arquivo com dados completos de pós-irradiação
+                    2. O arquivo deve conter as colunas: **Comprimento de Onda**, **P(λ)**, **I(λ)**, **Ai(λ)**, **A0i(λ)**
+                    3. Formatos suportados: CSV (separador ; ou ,) ou Excel
+                    4. Os dados devem cobrir a faixa de 320-400nm para análise UVA
+                    """)
+                
                 uploaded_file_uva = st.file_uploader("Dados PÓS-IRRADIAÇÃO (P(λ), I(λ), Ai(λ), A0i(λ))", type=["csv", "xlsx"], key="uva_upload")
                 
                 if uploaded_file_uva:
@@ -428,23 +555,52 @@ def main():
                         else:
                             st.success("Dados UVA validados!")
                             
+                            # Visualização rápida dos dados
+                            with st.expander("Visualizar dados carregados"):
+                                st.dataframe(df_uva.head(10))
+                                st.write(f"Total de {len(df_uva)} pontos espectrais")
+                            
                             uva_pf_0 = calculate_uva_pf_initial(df_uva, C_value, ppd_spectrum, uva_spectrum)
                             dose = calculate_exposure_dose(uva_pf_0)
                             uva_pf_final = calculate_uva_pf_final(df_uva, C_value, ppd_spectrum, uva_spectrum)
                             critical_wl = calculate_critical_wavelength(df_uva, C_value)
                             
                             col1, col2, col3, col4 = st.columns(4)
-                            with col1: st.metric("UVA-PF₀ (Eq. 3)", f"{uva_pf_0:.2f}")
-                            with col2: st.metric("Dose (Eq. 4)", f"{dose:.2f} J/cm²")
-                            with col3: st.metric("UVA-PF (Eq. 5)", f"{uva_pf_final:.2f}")
+                            with col1: 
+                                st.metric("UVA-PF₀ (Eq. 3)", f"{uva_pf_0:.2f}",
+                                         help="Fator de Proteção UVA inicial")
+                            with col2: 
+                                st.metric("Dose (Eq. 4)", f"{dose:.2f} J/cm²",
+                                         help="Dose de exposição UVA necessária")
+                            with col3: 
+                                st.metric("UVA-PF (Eq. 5)", f"{uva_pf_final:.2f}",
+                                         help="Fator de Proteção UVA final")
                             with col4: 
-                                status = "OK" if critical_wl >= 370 else "ALERTA"
-                                st.metric("λ Crítico", f"{critical_wl:.1f} nm", status)
+                                status = "✅" if critical_wl >= 370 else "⚠️"
+                                st.metric("λ Crítico", f"{critical_wl:.1f} nm", 
+                                         f"{status} {'OK' if critical_wl >= 370 else 'Abaixo de 370'}")
                             
                             if 10.7 <= uva_pf_final <= 14.7:
-                                st.success("✅ Resultado dentro da faixa do padrão de referência S2")
+                                st.success("✅ Resultado dentro da faixa do padrão de referência S2 (10.7-14.7)")
                             else:
                                 st.warning("⚠️ Resultado fora da faixa do padrão S2 (10.7-14.7)")
+                            
+                            # Gráficos para análise UVA
+                            st.subheader("Visualização dos Dados UVA")
+                            
+                            # Gráfico de absorbância com pós-irradiação
+                            fig_absorbance_uva = create_absorbance_plot(
+                                st.session_state.current_results['dados_pre'], 
+                                df_uva, 
+                                critical_wl
+                            )
+                            st.pyplot(fig_absorbance_uva)
+                            
+                            # Gráfico dos espectros de referência
+                            fig_ref_spectra = create_reference_spectra_plot(
+                                wavelengths, ppd_spectrum, erythema_spectrum, uva_spectrum
+                            )
+                            st.pyplot(fig_ref_spectra)
                             
                             st.session_state.current_results.update({
                                 'uva_pf_0': uva_pf_0,
@@ -458,12 +614,16 @@ def main():
             st.subheader("Resultados Completos")
             
             if 'uva_pf_final' not in st.session_state.current_results:
-                st.warning("Complete as análises anteriores")
+                st.warning("Complete as análises anteriores para ver os resultados completos")
             else:
                 results = st.session_state.current_results
                 
+                # Resumo dos resultados
+                st.success("✅ Análise concluída com sucesso!")
+                
                 col1, col2 = st.columns(2)
                 with col1:
+                    st.subheader("Resultados SPF")
                     st.metric("SPF in vitro", f"{results['spf_in_vitro']:.2f}")
                     st.metric("SPF Mansur", f"{results['spf_mansur']:.2f}")
                     st.metric("SPF in vivo", f"{results['spf_in_vivo']:.2f}")
@@ -471,41 +631,32 @@ def main():
                     st.metric("Coeficiente C", f"{results['C_value']:.4f}")
                 
                 with col2:
+                    st.subheader("Resultados UVA")
                     st.metric("UVA-PF₀", f"{results['uva_pf_0']:.2f}")
                     st.metric("UVA-PF Final", f"{results['uva_pf_final']:.2f}")
                     st.metric("Dose de Exposição", f"{results['dose']:.2f} J/cm²")
                     st.metric("λ Crítico", f"{results['critical_wavelength']:.1f} nm")
                 
-                # Gráficos Corrigidos
-                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+                # Gráfico comparativo de fatores de proteção
+                st.subheader("Comparação dos Fatores de Proteção")
+                fig_comparison = create_protection_factor_chart(results)
+                st.pyplot(fig_comparison)
                 
-                # Gráfico 1: Dados experimentais
-                ax1.plot(results['dados_pre']['Comprimento de Onda'], 
-                        results['dados_pre']['A0i(λ)'], 
-                        label='Absorbância Inicial (SPF)', linewidth=2, color='blue')
+                # Interpretação dos resultados
+                st.subheader("Interpretação dos Resultados")
                 
-                if 'dados_post' in results:
-                    ax1.plot(results['dados_post']['Comprimento de Onda'], 
-                            results['dados_post']['Ai(λ)'], 
-                            label='Absorbância Final (UVA)', linewidth=2, color='red')
+                # Verificação do λ crítico
+                if results['critical_wavelength'] >= 370:
+                    st.success("✅ **λ Crítico**: Atende ao requisito mínimo de 370nm (ISO 24443:2011)")
+                else:
+                    st.error("❌ **λ Crítico**: Não atende ao requisito mínimo de 370nm (ISO 24443:2011)")
                 
-                ax1.set_xlabel('Comprimento de Onda (nm)')
-                ax1.set_ylabel('Absorbância')
-                ax1.set_title('Espectro de Absorbância')
-                ax1.legend()
-                ax1.grid(True, alpha=0.3)
-                ax1.set_xlim(290, 400)
-                
-                # Gráfico 2: Espectros de referência principais
-                ax2.plot(wavelengths, erythema_spectrum, label='Eritema CIE (E(λ))', color='orange', alpha=0.7)
-                ax2.plot(wavelengths, ppd_spectrum, label='PPD (P(λ))', color='purple', alpha=0.7)
-                ax2.set_xlabel('Comprimento de Onda (nm)')
-                ax2.set_ylabel('Valor do Espectro')
-                ax2.set_title('Espectros de Referência Principais')
-                ax2.legend()
-                ax2.grid(True, alpha=0.3)
-                ax2.set_xlim(290, 400)
-                st.pyplot(fig)
+                # Verificação da relação UVA-PF/SPF
+                uva_pf_ratio = results['uva_pf_final'] / results['spf_in_vivo'] if results['spf_in_vivo'] > 0 else 0
+                if uva_pf_ratio >= 0.33:
+                    st.success(f"✅ **Relação UVA-PF/SPF**: {uva_pf_ratio:.3f} (≥ 1/3, atendendo ao requisito da UE)")
+                else:
+                    st.warning(f"⚠️ **Relação UVA-PF/SPF**: {uva_pf_ratio:.3f} (< 1/3, não atendendo ao requisito da UE)")
                 
                 # Relatório PDF
                 st.subheader("📄 Relatório de Análise")
@@ -554,11 +705,90 @@ def main():
     
     elif page == "Validação de Dados":
         st.header("Validação de Dados e Espectros")
-        # ... (código de validação)
+        
+        st.info("""
+        Esta seção permite validar seus dados antes da análise completa.
+        Faça upload de seus arquivos para verificar se estão no formato correto.
+        """)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Validação de Dados SPF")
+            spf_val_file = st.file_uploader("Dados para validação SPF", type=["csv", "xlsx"], key="val_spf")
+            if spf_val_file:
+                df_val, error = load_and_validate_data(spf_val_file, "pre_irradiation")
+                if error:
+                    st.error(f"❌ {error}")
+                else:
+                    st.success("✅ Dados SPF válidos!")
+                    st.write(f"**Formato:** {len(df_val)} pontos espectrais")
+                    st.write(f"**Faixa espectral:** {df_val['Comprimento de Onda'].min():.0f} - {df_val['Comprimento de Onda'].max():.0f} nm")
+                    
+                    # Visualização rápida
+                    fig_val = create_absorbance_plot(df_val)
+                    st.pyplot(fig_val)
+        
+        with col2:
+            st.subheader("Validação de Dados UVA")
+            uva_val_file = st.file_uploader("Dados para validação UVA", type=["csv", "xlsx"], key="val_uva")
+            if uva_val_file:
+                df_val, error = load_and_validate_data(uva_val_file, "post_irradiation")
+                if error:
+                    st.error(f"❌ {error}")
+                else:
+                    is_valid, validation_msg = validate_uva_data(df_val)
+                    if not is_valid:
+                        st.error(f"❌ {validation_msg}")
+                    else:
+                        st.success("✅ Dados UVA válidos!")
+                        st.write(f"**Formato:** {len(df_val)} pontos espectrais")
+                        st.write(f"**Faixa UVA:** {df_val['Comprimento de Onda'].min():.0f} - {df_val['Comprimento de Onda'].max():.0f} nm")
+                        
+                        # Verificar colunas presentes
+                        present_cols = [col for col in ['P(λ)', 'I(λ)', 'Ai(λ)', 'A0i(λ)'] if col in df_val.columns]
+                        st.write(f"**Colunas detectadas:** {', '.join(present_cols)}")
     
     else:
         st.header("Sobre a Norma ISO 24443:2011")
-        # ... (código informativo)
+        
+        st.markdown("""
+        ## 📋 Informações sobre a Norma ISO 24443:2011
+        
+        A norma **ISO 24443:2011** especifica um método para determinar a proteção UVA in vitro 
+        de produtos de proteção solar.
+        
+        ### 🔍 Principais Parâmetros Avaliados:
+        
+        - **UVA-PF**: Fator de Proteção UVA
+        - **λ Crítico**: Comprimento de onda abaixo do qual 90% da absorbância total é obtida
+        - **Dose de Exposição**: Quantidade de radiação UVA necessária para o teste
+        
+        ### ✅ Requisitos da Norma:
+        
+        - **λ Crítico** deve ser ≥ 370 nm
+        - O produto de referência S2 deve ter UVA-PF entre 10.7 e 14.7
+        - A relação UVA-PF/SPF deve ser ≥ 1/3 (requisito da União Europeia)
+        
+        ### 📊 Metodologia:
+        
+        O método consiste em:
+        1. Medir a transmitância espectrofotométrica do produto
+        2. Aplicar uma dose de radiação UVA
+        3. Medir novamente a transmitância
+        4. Calcular os parâmetros de proteção UVA
+        
+        ### 🔬 Espectros de Referência:
+        
+        - **E(λ)**: Espectro de eritema (queimadura solar)
+        - **P(λ)**: Espectro de escurecimento pigmentar persistente (PPD)
+        - **I(λ)**: Espectro de irradiância solar
+        """)
+        
+        # Mostrar espectros de referência
+        wavelengths, ppd_spectrum, erythema_spectrum, uv_ssr_spectrum, uva_spectrum = load_reference_spectra()
+        fig_ref = create_reference_spectra_plot(wavelengths, ppd_spectrum, erythema_spectrum, uva_spectrum)
+        st.pyplot(fig_ref)
 
 if __name__ == "__main__":
     main()
