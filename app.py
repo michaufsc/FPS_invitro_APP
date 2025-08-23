@@ -797,7 +797,7 @@ def main():
                 with col3:
                     st.subheader("🌅 Resultados UVA")
                     st.metric("UVA-PF₀ (Eq. 3)", f"{results['uva_pf_0']:.2f}")
-                    st.metric("UVA-PF Final (Eq. 5)", f"{results['uva_pf_final']:.极 2f}")
+                    st.metric("UVA-PF Final (Eq. 5)", f"{results['uva_pf_final']:.2f}")
                     st.metric("Dose de Exposição (Eq. 4)", f"{results['dose']:.2f} J/cm²")
                     st.metric("λ Crítico", f"{results['critical_wavelength']:.1f} nm")
                 
