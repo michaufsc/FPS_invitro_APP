@@ -718,7 +718,7 @@ def main():
                             # Visualização dos dados
                             with st.expander("📋 Visualizar dados carregados"):
                                 st.dataframe(df_uva.head(10))
-                                st.write(f"极 **Estatísticas UVA:** {len(df_uva)} pontos, {df_uva['Comprimento de Onda'].min():.0极 f}-{df_uva['Comprimento de Onda'].max():.0f}nm")
+                                st.write(f"**Estatísticas UVA:** {len(df_uva)} pontos, {df_uva['Comprimento de Onda'].min():.0f}-{df_uva['Comprimento de Onda'].max():.0f}nm")
                             
                             # Cálculos UVA conforme ISO
                             uva_pf_0 = calculate_uva_pf_initial_iso(df_uva, C_value, ppd_spectrum, uva_spectrum)
