@@ -7,3 +7,4 @@ fpdf2==2.7.7
 openpyxl==3.1.2
 setuptools==69.0.0  # Garante compatibilidade
 chardet==5.2.0
+reportlab==4.0.7
