@@ -252,7 +252,7 @@ def calculate_spf_mansur_simplified(df):
     """Calcula SPF usando a fórmula simplificada de Mansur et al. (1986)"""
     mansur_table = {
         290: 0.0150, 295: 0.0817, 300: 0.2874, 305: 0.3278,
-        310: 0.1864, 315: 0.0839, 极 320: 0.0180
+        310: 0.1864, 315: 0.0839, 320: 0.0180
     }
     
     total_sum = 0.0
