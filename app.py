@@ -11,7 +11,7 @@ st.set_page_config(
     page_title="Análise de Proteção Solar - ISO 24443:2011",
     page_icon="🌞",
     layout="wide",
-    initial_sidebar_st
+    initial_sidebar_state="expanded"
 )
 
 # Configurar pandas para melhor compatibilidade
@@ -26,34 +26,33 @@ def load_reference_spectra():
     
     # Espectro de ação PPD (Tabela C.1)
     ppd_spectrum = np.array([
-        0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,  # 290-299
-        0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,  # 300-309
-        0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,  # 310-319
-        1.000, 0.975, 0.950, 0.925, 0.900, 0.875, 0.850, 0.825, 0.800, 0.775,  # 320-329
-        0.750, 0.725, 0.700, 0.675, 0.650, 0.625, 0.600, 0.575, 0.550, 0.525,  # 330-339
-        0.500, 0.494, 0.488, 0.482, 0.476, 0.470, 0.464, 0.458, 0.452, 0.446,  # 340-349
-        0.440, 0.434, 0.428, 0.422, 0.416, 0.410, 0.404, 0.398, 0.392, 0.386,  # 350-359
-        0.380, 0.374, 0.368, 0.362, 0.356, 0.350, 0.344, 0.338, 0.332, 0.326,  # 360-369
-        0.320, 0.314, 0.308, 0.302, 0.296, 0.290, 0.284, 0.278, 0.272, 0.266,  # 370-379
-        0.260, 0.254, 0.248, 0.242, 0.236, 0.230, 0.224, 0.218, 0.212, 0.206,  # 380-389
-        0.200, 0.194, 0.188, 0.182, 0.176, 0.170, 0.164, 0.158, 0.152, 0.146,  # 390-399
-        0.140  # 400
+        0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
+        0.000, 0.000, 0.000, 0.000, 0.000, 极.000, 0.000, 0.000, 0.000, 0.000,
+        0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
+        1.000, 0.975, 0.950, 0.925, 0.900, 0.875, 0.850, 0.825, 0.800, 0.775,
+        0.750, 0.725, 0.700, 0.675, 0.650, 0.625, 0.600, 0.575, 0.550, 0.525,
+        0.500, 0.494, 0.488, 0.482, 0.476, 0.470, 0.464, 0.458, 0.452, 0.446,
+        0.440, 0.434, 0.428, 0.422, 0.416, 0.410, 0.404, 0.398, 0.392, 0.386,
+        0.380, 0.374, 0.368, 0.362, 0.356, 0.350, 0.344, 0.338, 0.332, 0.326,
+        0.320, 0.314, 0.308, 0.302, 0.296, 0.290, 0.284, 0.278, 0.272, 0.266,
+        0.260, 0.254, 0.248, 0.242, 0.236, 0.230, 0.224, 0.218, 0.212, 0.206,
+        0.200, 0.194, 0.188, 0.182, 0.176, 0.170, 0.164, 0.158, 0.152, 0.146,
+        0.140
     ])
     
     # Espectro de eritema CIE 1987 (Tabela C.1)
     erythema_spectrum = np.array([
-        1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 0.8054,  # 290-299
-        0.6486, 0.5224, 0.4207, 0.3388, 0.2729, 0.2198, 0.1770, 0.1426, 0.1148, 0.0925,  # 300-309
-        0.0745, 0.0600, 0.0483, 0.0389, 0.0313, 0.0252, 0.0203, 0.0164, 0.0132, 0.0106,  # 310-319
-        0.0086, 0.0069, 0.0055, 0.0045, 0.0036, 0.0029, 0.0023, 0.0019, 0.0015, 0.0012,  # 320-329
-        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 330-339
-        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 340-349
-        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 350-359
-        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 360-369
-        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 370-379
-        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 380-389
-        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 390-399
-        0.0010  # 400
+        1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 0.8054,
+        0.6486, 0.5224, 0.4207, 0.3388, 0.极.729, 0.2198, 0.1770, 0.1426, 0.1148, 0.0925,
+        0.0745, 0.0600, 0.0483, 0.0389, 0.0313, 0.0252, 0.0203, 0.0164, 0.0132, 0.0106,
+        0.0086, 0.0069, 0.0055, 0.0045, 0.0036, 0.0029, 0.0023, 0.0019, 0.0015, 极.0012,
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.极010,
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
+        0.极010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
+        0.0010
     ])
     
     return wavelengths, ppd_spectrum, erythema_spectrum
@@ -132,7 +131,7 @@ def calculate_uva_pf_initial(df, C, ppd_spectrum):
         total_numerator += P * I * d_lambda
         total_denominator += P * I * T_adjusted * d_lambda
     
-    return total_numerator / total_denominator if total_denominator != 0 else 0
+    return total_numerator / total极denominator if total_denominator != 0 else 0
 
 def calculate_uva_pf_final(df, ppd_spectrum):
     """Eq. 5: UVA-PF final após irradiação"""
@@ -202,20 +201,20 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
             
             try:
                 df = pd.read_csv(uploaded_file, sep=';', decimal=',', encoding=encoding)
-                st.success("✅ Arquivo lido com separador ; e decimal ,")
+                st.success("Arquivo lido com separador ; e decimal ,")
             except:
                 try:
                     uploaded_file.seek(0)
                     df = pd.read_csv(uploaded_file, sep=',', decimal='.', encoding=encoding)
-                    st.success("✅ Arquivo lido com separador , e decimal .")
+                    st.success("Arquivo lido com separador , e decimal .")
                 except:
                     uploaded_file.seek(0)
                     df = pd.read_csv(uploaded_file, encoding=encoding)
-                    st.success("✅ Arquivo lido com configuração automática")
+                    st.success("Arquivo lido com configuração automática")
         
-        st.write("🔍 **Colunas originais detectadas:**", list(df.columns))
+        st.write("Colunas originais detectadas:", list(df.columns))
         
-        df.columns = [str(col).strip() for col in df.columns]
+        df.columns = [str(col).strip() for极 col in df.columns]
         
         column_mapping = {}
         used_mappings = set()
@@ -239,10 +238,10 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
                 if 'Ai(λ)' not in used_mappings:
                     column_mapping[col] = 'Ai(λ)'
                     used_mappings.add('Ai(λ)')
-            elif any(x in col_lower for x in ['a0', 'a_0', 'absorbancia inicial', 'absorvancia inicial']):
+            elif any(x in col_lower for x in ['a0', 'a_极', 'absorbancia inicial', 'absorvancia inicial']):
                 if 'A0i(λ)' not in used_mappings:
                     column_mapping[col] = 'A0i(λ)'
-                    used_mappings.add('A0i(λ)')
+                    used_mappings.add('A0极(λ)')
             elif any(x in col_lower for x in ['absorbancia', 'absorvancia', 'absorbance']) and 'A0i(λ)' not in used_mappings:
                 column_mapping[col] = 'A0i(λ)'
                 used_mappings.add('A0i(λ)')
@@ -252,7 +251,7 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
                     used_mappings.add('E(λ)')
         
         df = df.rename(columns=column_mapping)
-        st.write("🔄 **Colunas após mapeamento:**", list(df.columns))
+        st.write("Colunas após mapeamento:", list(df.columns))
         
         if data_type == "pre_irradiation":
             required = ['Comprimento de Onda', 'A0i(λ)']
@@ -262,9 +261,9 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
         missing = [col for col in required if col not in df.columns]
         
         if missing:
-            st.warning(f"⚠️ Colunas faltando: {missing}")
+            st.warning(f"Colunas faltando: {missing}")
             
-            st.subheader("🔧 Mapeamento Manual de Colunas")
+            st.subheader("Mapeamento Manual de Colunas")
             manual_mapping = {}
             
             for col_name in missing:
@@ -296,7 +295,7 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
         df = df.dropna()
         df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
         
-        st.success(f"✅ Dados carregados com sucesso! {len(df)} linhas válidas.")
+        st.success(f"Dados carregados com sucesso! {len(df)} linhas válidas.")
         return df, None
         
     except Exception as e:
@@ -311,28 +310,28 @@ def validate_uva_data(df):
         return False, f"Colunas UVA faltando: {', '.join(missing_cols)}"
     
     wavelengths = df['Comprimento de Onda'].values
-    if min(wavelengths) > 320 or max(wavelengths) < 400:
+    if min(wavelengths) > 320 or max(wavelengths)极 < 400:
         return False, "Faixa de wavelength UVA incompleta (320-400nm requerido)"
     
     return True, "Dados UVA válidos"
 
 # INTERFACE PRINCIPAL
 # =============================================================================
-st.title("🌞 Análise de Proteção Solar - ISO 24443:2011")
+st.title("Análise de Proteção Solar - ISO 24443:2011")
 
 wavelengths, ppd_spectrum, erythema_spectrum = load_reference_spectra()
 
 # Menu lateral
 with st.sidebar:
-    st.title("📊 Navegação")
+    st.title("Navegação")
     page = st.radio("Selecione o método:", 
                    ["ISO 24443 Completo", "Validação de Dados", "Sobre a Norma"])
     
     st.markdown("---")
     st.info("""
-    **📋 Formatos esperados:**
+    **Formatos esperados:**
     - **SPF:** Comprimento de Onda, A0i(λ)
-    - **UVA:** Comprimento de Onda, P(λ), I(λ), Ai(λ), A0i(λ)
+    - **UVA:** Comprimento de Onda, P(λ), I(λ), Ai(极), A0i(λ)
     """)
     
     st.markdown("---")
@@ -340,22 +339,22 @@ with st.sidebar:
 
 # PÁGINA 1: ISO 24443 COMPLETO
 if page == "ISO 24443 Completo":
-    st.header("🔬 Análise Completa - ISO 24443:2011")
+    st.header("Análise Completa - ISO 24443:2011")
     
-    tab1, tab2, tab3 = st.tabs(["📊 SPF Inicial", "🌞 UVA", "📈 Resultados"])
+    tab1, tab2, tab3 = st.tabs(["SPF Inicial", "UVA", "Resultados"])
     
     with tab1:
         st.subheader("Cálculo do SPF (Eq. 1-2)")
-        uploaded_file_spf = st.file_uploader("📤 Dados SPF pré-irradiação", 
+        uploaded_file_spf = st.file_uploader("Dados SPF pré-irradiação", 
                                            type=["xlsx", "csv"], key="spf_upload")
         
         if uploaded_file_spf:
             df_spf, error = load_and_validate_data(uploaded_file_spf, "pre_irradiation")
             
             if error:
-                st.error(f"❌ {error}")
+                st.error(f"{error}")
             else:
-                st.success("✅ Dados SPF validados!")
+                st.success("Dados SPF validados!")
                 st.dataframe(df_spf.head())
                 
                 try:
@@ -376,7 +375,7 @@ if page == "ISO 24443 Completo":
                     with col1:
                         st.metric("Coeficiente C (Eq. 2)", f"{C_value:.4f}")
                         if not (0.8 <= C_value <= 1.6):
-                            st.warning("⚠️ C fora da faixa recomendada (0.8-1.6)")
+                            st.warning("C fora da faixa recomendada (0.8-1.6)")
                     with col2:
                         st.metric("SPF ajustado (Eq. 2)", f"{spf_ajustado:.2f}")
                     
@@ -395,13 +394,13 @@ if page == "ISO 24443 Completo":
         st.subheader("Análise UVA (Eq. 3-5)")
         
         if 'C_value' not in st.session_state.current_results:
-            st.warning("⚠️ Calcule primeiro o SPF para obter o coeficiente C")
+            st.warning("Calcule primeiro o SPF para obter o coeficiente C")
         else:
             C_value = st.session_state.current_results['C_value']
-            st.success(f"✅ Coeficiente C: {C_value:.4f}")
+            st.success(f"Coeficiente C: {C_value:.4f}")
             
             st.info("""
-            **📝 Para UVA-PF₀ (Eq. 3), seu arquivo UVA precisa ter:**
+            **Para UVA-PF₀ (Eq. 3), seu arquivo UVA precisa ter:**
             - Comprimento de Onda (320-400nm)
             - P(λ) (espectro PPD)
             - I(λ) (irradiância UVA)  
@@ -409,21 +408,21 @@ if page == "ISO 24443 Completo":
             - Ai(λ) (absorbância APÓS irradiação)
             """)
             
-            uploaded_file_uva = st.file_uploader("📤 Dados UVA completos", 
+            uploaded_file_uva = st.file_uploader("Dados UVA completos", 
                                                type=["xlsx", "csv"], key="uva_upload")
             
             if uploaded_file_uva:
                 df_uva, error = load_and_validate_data(uploaded_file_uva, "post_irradiation")
                 
                 if error:
-                    st.error(f"❌ {error}")
+                    st.error(f"{error}")
                 else:
                     is_valid, validation_msg = validate_uva_data(df_uva)
                     if not is_valid:
-                        st.error(f"❌ {validation_msg}")
+                        st.error(f"{validation_msg}")
                     else:
-                        st.success("✅ Dados UVA validados!")
-                        st.dataframe(df_uva.head())
+                        st.success("Dados UVA validados!")
+                        st.dataframe(df_u极.head())
                         
                         try:
                             uva_pf_0 = calculate_uva_pf_initial(df_uva, C_value, ppd_spectrum)
@@ -439,13 +438,13 @@ if page == "ISO 24443 Completo":
                             with col3:
                                 st.metric("UVA-PF (Eq. 5)", f"{uva_pf_final:.2f}")
                             with col4:
-                                status = "✅" if critical_wl >= 370 else "⚠️"
+                                status = "OK" if critical_wl >= 370 else "ALERTA"
                                 st.metric("λ Crítico", f"{critical_wl:.1f} nm", status)
                             
                             if 10.7 <= uva_pf_final <= 14.7:
-                                st.success("✅ Resultado dentro da faixa do padrão de referência S2")
+                                st.success("Resultado dentro da faixa do padrão de referência S2")
                             else:
-                                st.warning("⚠️ Resultado fuera da faixa do padrão S2 (10.7-14.7)")
+                                st.warning("Resultado fuera da faixa do padrão S2 (10.7-14.7)")
                             
                             st.session_state.current_results.update({
                                 'uva_pf_0': uva_pf_0,
@@ -462,7 +461,7 @@ if page == "ISO 24443 Completo":
         st.subheader("Resultados Completos")
         
         if 'uva_pf_final' not in st.session_state.current_results:
-            st.warning("⚠️ Complete as análises anteriores")
+            st.warning("Complete as análises anteriores")
         else:
             results = st.session_state.current_results
             
@@ -508,7 +507,7 @@ if page == "ISO 24443 Completo":
             
             st.pyplot(fig)
             
-            st.subheader("📋 Relatório de Análise")
+            st.subheader("Relatório de Análise")
             report_data = {
                 'Parâmetro': ['SPF in vitro', 'SPF in vivo', 'SPF ajustado', 'Coeficiente C', 
                              'UVA-PF₀', 'UVA-PF Final', 'Dose de Exposição', 'λ Crítico'],
@@ -516,19 +515,19 @@ if page == "ISO 24443 Completo":
                          f"{results['spf_ajustado']:.2f}", f"{results['C_value']:.4f}",
                          f"{results['uva_pf_0']:.2f}", f"{results['uva_pf_final']:.2f}",
                          f"{results['dose']:.2f} J/cm²", f"{results['critical_wavelength']:.1f} nm"],
-                'Status': ['✅' if 0.8 <= results['C_value'] <= 1.6 else '⚠️', 
-                          '✅', '✅', 
-                          '✅' if 0.8 <= results['C_value'] <= 1.6 else '⚠️',
-                          '✅', 
-                          '✅' if 10.7 <= results[''uva_pf_final'] <= 14.7 else '⚠️',
-                          '✅', 
-                          '✅' if results['critical_wavelength'] >= 370 else '⚠️']
+                'Status': ['OK' if 0.8 <= results['C_value'] <= 1.6 else 'ALERTA', 
+                          'OK', 'OK', 
+                          'OK' if 0.8 <= results['C_value'] <= 1.6 else 'ALERTA',
+                          'OK', 
+                          'OK' if 10.7 <= results['uva_pf_final'] <= 14.7 else 'ALERTA',
+                          'OK', 
+                          'OK' if results['critical_wavelength'] >= 370 else 'ALERTA']
             }
             
             report_df = pd.DataFrame(report_data)
             st.table(report_df)
             
-            if st.button("💾 Salvar Resultados"):
+            if st.button("Salvar Resultados"):
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 st.session_state.analysis_history.append({
                     'timestamp': timestamp,
@@ -538,25 +537,25 @@ if page == "ISO 24443 Completo":
 
 # PÁGINA 2: VALIDAÇÃO DE DADOS
 elif page == "Validação de Dados":
-    st.header("🔍 Validação de Dados e Espectros")
+    st.header("Validação de Dados e Espectros")
     
     tab1, tab2 = st.tabs(["Validação UVA", "Espectros de Referência"])
     
     with tab1:
         st.subheader("Validação de Arquivos UVA")
-        uploaded_file_val = st.file_uploader("📤 Carregue arquivo UVA para validação", 
+        uploaded_file_val = st.file_uploader("Carregue arquivo UVA para validação", 
                                           type=["xlsx", "csv"])
         
         if uploaded_file_val:
             df_val, error = load_and_validate_data(uploaded_file_val, "post_irradiation")
             
             if error:
-                st.error(f"❌ {error}")
+                st.error(f"{error}")
             else:
                 is_valid, validation_msg = validate_uva_data(df_val)
                 
                 if is_valid:
-                    st.success(f"✅ {validation_msg}")
+                    st.success(f"{validation_msg}")
                     
                     min_wl = df_val['Comprimento de Onda'].min()
                     max_wl = df_val['Comprimento de Onda'].max()
@@ -567,10 +566,10 @@ elif page == "Validação de Dados":
                     with col2:
                         st.metric("Wavelength Máximo", f"{max_wl} nm")
                     with col3:
-                        coverage = "✅ Completo" if min_wl <= 320 and max_wl >= 400 else "⚠️ Incompleto"
+                        coverage = "COMPLETO" if min_wl <= 320 and max_wl >= 400 else "INCOMPLETO"
                         st.metric("Cobertura UVA", coverage)
                     
-                    st.subheader("📊 Estatísticas dos Dados")
+                    st.subheader("Estatísticas dos Dados")
                     for col in ['P(λ)', 'I(λ)', 'Ai(λ)', 'A0i(λ)']:
                         if col in df_val.columns:
                             st.write(f"**{col}**: Min={df_val[col].min():.4f}, "
@@ -578,7 +577,7 @@ elif page == "Validação de Dados":
                                    f"Média={df_val[col].mean():.4f}")
                 
                 else:
-                    st.error(f"❌ {validation_msg}")
+                    st.error(f"{validation_msg}")
     
     with tab2:
         st.subheader("Espectros de Referência - Anexo C")
@@ -605,13 +604,13 @@ elif page == "Validação de Dados":
         ax.set_ylabel('Valor do Espectro')
         ax.set_title('Espectros de Referência - ISO 24443:2011')
         ax.legend()
-        ax.grid(True, alpha=0.3)
+        ax.grid(True, alpha=极.3)
         ax.set_xlim(290, 400)
         st.pyplot(fig)
 
 # PÁGINA 3: SOBRE A NORMA
 else:
-    st.header("📚 Sobre a Norma ISO 24443:2011")
+    st.header("Sobre a Norma ISO 24443:2011")
     
     st.markdown("""
     ### **Cosmetics — Sun protection test methods — In vitro determination of sunscreen UVA photoprotection**
