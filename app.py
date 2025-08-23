@@ -26,10 +26,9 @@ pd.set_option('display.width', 1000)
 logger = logging.getLogger('UVA_Analysis')
 logger.setLevel(logging.INFO)
 
-# ESPECTROS DE REFERÊNCIA COMPLETOS
 def load_reference_spectra():
-    """Carrega os espectros de referência com interpolação cúbica"""
-    wavelengths = np.arange(290, 401)  # 290-400nm
+    """Carrega os espectros de referência COMPLETOS da Annex C da norma ISO"""
+    wavelengths = np.arange(290, 401)  # 290-400nm, 111 valores
     
     # Espectro de ação PPD (Tabela C.1) - 111 valores
     ppd_spectrum = np.array([
@@ -47,7 +46,7 @@ def load_reference_spectra():
         0.140
     ])
     
-    # Espectro de eritema CIE 1987 (Tabela C.1)
+    # Espectro de eritema CIE 1987 (Tabela C.1) - 111 valores
     erythema_spectrum = np.array([
         1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 0.8054,
         0.6486, 0.5224, 0.4207, 0.3388, 0.2729, 0.2198, 0.1770, 0.1426, 0.1148, 0.0925,
@@ -62,7 +61,7 @@ def load_reference_spectra():
         0.0010
     ])
     
-    # Espectro de irradiância UV-SSR (Tabela C.1)
+    # Espectro de irradiância UV-SSR (Tabela C.1) - 111 valores
     uv_ssr_spectrum = np.array([
         8.741E-06, 1.450E-05, 2.659E-05, 4.574E-05, 1.006E-04, 2.589E-04, 7.035E-04, 1.678E-03, 3.727E-03, 7.938E-03,
         1.478E-02, 2.514E-02, 4.176E-02, 6.223E-02, 8.690E-02, 1.216E-01, 1.615E-01, 1.989E-01, 2.483E-01, 2.894E-01,
@@ -78,7 +77,7 @@ def load_reference_spectra():
         4.172E-03
     ])
     
-    # Espectro de irradiância UVA (Tabela C.1)
+    # Espectro de irradiância UVA (Tabela C.1) - 111 valores
     uva_spectrum = np.array([
         0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
         0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
@@ -93,16 +92,7 @@ def load_reference_spectra():
         2.012E-04, 1.640E-04, 1.311E-04, 1.028E-04, 7.897E-05, 5.975E-05, 4.455E-05, 3.259E-05, 2.302E-05, 1.581E-05,
         1.045E-05
     ])
-    
-    # Interpolação cúbica para 111 valores
-    x_original = np.arange(290, 401)
-    
-    ppd_extended = CubicSpline(x_original, ppd_spectrum)(wavelengths)
-    erythema_extended = CubicSpline(x_original, erythema_spectrum)(wavelengths)
-    uv_ssr_extended = CubicSpline(x_original, uv_ssr_spectrum)(wavelengths)
-    uva_extended = CubicSpline(x_original, uva_spectrum)(wavelengths)
-    
-    return wavelengths, ppd_extended, erythema_extended, uv_ssr_extended, uva_extended
+    return wavelengths, ppd_spectrum, erythema_spectrum, uv_ssr_spectrum, uva_spectrum
 
 # Sistema de sessão
 if 'uploaded_data' not in st.session_state:
@@ -512,18 +502,15 @@ def main():
                 ax1.legend()
                 ax1.grid(True, alpha=0.3)
                 ax1.set_xlim(290, 400)
-                
-                # Gráfico 2: Apenas espectros UVA (corrigido)
-                uva_mask = (wavelengths >= 320) & (wavelengths <= 400)
-                ax2.plot(wavelengths[uva_mask], ppd_spectrum[uva_mask], label='PPD (P(λ))', color='purple')
-                ax2.plot(wavelengths[uva_mask], uva_spectrum[uva_mask], label='UVA (I(λ))', color='green')
+                # Gráfico 2: Espectros de referência principais
+                ax2.plot(wavelengths, erythema_spectrum, label='Eritema CIE (E(λ))', color='orange', alpha=0.7)
+                ax2.plot(wavelengths, ppd_spectrum, label='PPD (P(λ))', color='purple', alpha=0.7)
                 ax2.set_xlabel('Comprimento de Onda (nm)')
                 ax2.set_ylabel('Valor do Espectro')
-                ax2.set_title('Espectros de Referência UVA')
+                ax2.set_title('Espectros de Referência Principais')
                 ax2.legend()
                 ax2.grid(True, alpha=0.3)
-                ax2.set_xlim(320, 400)
-                
+                ax2.set_xlim(290, 400)
                 st.pyplot(fig)
                 
                 # Relatório PDF
