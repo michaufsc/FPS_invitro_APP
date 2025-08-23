@@ -247,6 +247,46 @@ def calculate_confidence_interval(uva_pf_values):
     
     return ci, ci_percent, mean_uva_pf
 
+# FUNÇÕES DE CÁLCULO MANSUR (ADICIONADAS)
+def calculate_spf_mansur_simplified(df):
+    """Calcula SPF usando a fórmula simplificada de Mansur et al. (1986)"""
+    mansur_table = {
+        290: 0.0150, 295: 0.0817, 300: 0.2874, 305: 0.3278,
+        310: 0.1864, 315: 0.0839, 320: 0.0180
+    }
+    
+    total_sum = 0.0
+    for wavelength, eei_value in mansur_table.items():
+        # Encontrar o valor mais próximo no DataFrame
+        closest_row = df.iloc[(df['Comprimento de Onda'] - wavelength).abs().argsort()[:1]]
+        if not closest_row.empty:
+            absorbance = closest_row['A0i(λ)'].values[0]
+            total_sum += eei_value * absorbance
+    
+    return 10 * total_sum
+
+def calculate_spf_mansur_precise(df):
+    """Calcula SPF Mansur com interpolação mais precisa"""
+    mansur_table = {
+        290: 0.0150, 295: 0.0817, 300: 0.2874, 305: 0.3278,
+        310: 0.1864, 315: 0.0839, 320: 0.0180
+    }
+    
+    total_sum = 0.0
+    wavelengths_df = df['Comprimento de Onda'].values
+    absorbance_df = df['A0i(λ)'].values
+    
+    # Criar função de interpolação
+    if len(wavelengths_df) > 1:
+        interpolate_func = CubicSpline(wavelengths_df, absorbance_df)
+        
+        for wavelength, eei_value in mansur_table.items():
+            if wavelength >= wavelengths_df.min() and wavelength <= wavelengths_df.max():
+                absorbance = interpolate_func(wavelength)
+                total_sum += eei_value * absorbance
+    
+    return 10 * total_sum
+
 # FUNÇÕES AUXILIARES
 def get_spectrum_value(wavelength, spectrum_array, min_wavelength=290):
     idx = wavelength - min_wavelength
@@ -355,7 +395,7 @@ def validate_uva_data_iso(df):
 
 # FUNÇÕES PARA GRÁFICOS MELHORADOS
 def create_absorbance_plot_iso(df_pre, df_post=None, critical_wavelength=None):
-    """Cria gráfico de absorbância com design ISO 24443"""
+    """Cria gráfico de absorbância con design ISO 24443"""
     fig, ax = plt.subplots(figsize=(12, 6))
     
     # Plotar dados de pré-irradiação
@@ -544,7 +584,7 @@ def main():
         tab1, tab2, tab3 = st.tabs(["📊 SPF Inicial", "🔬 UVA", "📈 Resultados"])
         
         with tab1:
-            st.subheader("Cálculo do SPF in vitro (Eq. 1-2)")
+            st.subheader("Cálculo do SPF in vitro (Eq. 1-2) + Mansur")
             
             with st.expander("ℹ️ Instruções Conforme ISO 24443:6.1-6.7"):
                 st.markdown("""
@@ -573,10 +613,22 @@ def main():
                     # Cálculo SPF in vitro
                     spf_in_vitro = calculate_spf_in_vitro_iso(df_spf, erythema_spectrum, uv_ssr_spectrum)
                     
-                    col1, col2 = st.columns(2)
+                    # ⭐⭐ CÁLCULO DE MANSUR ADICIONADO AQUI ⭐⭐
+                    spf_mansur = calculate_spf_mansur_simplified(df_spf)
+                    spf_mansur_precise = calculate_spf_mansur_precise(df_spf)
+                    
+                    col1, col2, col3 = st.columns(3)
                     with col1:
                         st.metric("SPF in vitro (Eq. 1)", f"{spf_in_vitro:.2f}",
                                  help="Fator de proteção solar calculado in vitro")
+                    
+                    with col2:
+                        st.metric("SPF Mansur Simplificado", f"{spf_mansur:.2f}",
+                                 help="Método Mansur et al. (1986) - aproximação")
+                    
+                    with col3:
+                        st.metric("SPF Mansur Interpolado", f"{spf_mansur_precise:.2f}",
+                                 help="Método Mansur com interpolação cúbica")
                     
                     SPF_in_vivo = st.number_input("SPF in vivo medido:", 
                                                 min_value=1.0, value=30.0, step=0.1,
@@ -590,9 +642,11 @@ def main():
                     C_value = result.x
                     spf_ajustado = calculate_adjusted_spf_iso(df_spf, C_value, erythema_spectrum, uv_ssr_spectrum)
                     
-                    with col2:
+                    col1, col2 = st.columns(2)
+                    with col1:
                         st.metric("Coeficiente C (Eq. 2)", f"{C_value:.4f}",
                                  help="Fator de ajuste para equalizar SPF in vitro/in vivo")
+                    with col2:
                         st.metric("SPF ajustado (Eq. 2)", f"{spf_ajustado:.2f}")
                     
                     # Verificação do coeficiente C conforme ISO
@@ -608,6 +662,8 @@ def main():
                     
                     st.session_state.current_results.update({
                         'spf_in_vitro': spf_in_vitro,
+                        'spf_mansur': spf_mansur,
+                        'spf_mansur_precise': spf_mansur_precise,
                         'spf_in_vivo': SPF_in_vivo,
                         'C_value': C_value,
                         'spf_ajustado': spf_ajustado,
@@ -713,15 +769,20 @@ def main():
                 st.success("✅ Análise concluída com sucesso!")
                 
                 # Resumo dos resultados
-                col1, col2 = st.columns(2)
+                col1, col2, col3 = st.columns(3)
                 with col1:
                     st.subheader("📊 Resultados SPF")
                     st.metric("SPF in vitro (Eq. 1)", f"{results['spf_in_vitro']:.2f}")
+                    st.metric("SPF Mansur Simplificado", f"{results['spf_mansur']:.2f}")
+                    st.metric("SPF Mansur Interpolado", f"{results['spf_mansur_precise']:.2f}")
+                
+                with col2:
+                    st.subheader("🎯 Resultados Ajustados")
                     st.metric("SPF in vivo", f"{results['spf_in_vivo']:.2f}")
                     st.metric("SPF ajustado (Eq. 2)", f"{results['spf_ajustado']:.2f}")
                     st.metric("Coeficiente C", f"{results['C_value']:.4f}")
                 
-                with col2:
+                with col3:
                     st.subheader("🌅 Resultados UVA")
                     st.metric("UVA-PF₀ (Eq. 3)", f"{results['uva_pf_0']:.2f}")
                     st.metric("UVA-PF Final (Eq. 5)", f"{results['uva_pf_final']:.2f}")
@@ -892,7 +953,7 @@ def main():
         ### ⚠️ Limitações:
         
         - Não aplicável a produtos em pó
-        - Baseia-se em resultados SPF *in vivo* para escalonamento
+        - Baseia-se in resultados SPF *in vivo* para escalonamento
         - Não é um método totalmente *in vitro*
         
         ### 🧪 Requisitos do Método:
