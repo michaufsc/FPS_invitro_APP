@@ -348,7 +348,7 @@ def load_and_validate_data_iso(uploaded_file, data_type="pre_irradiation"):
                 if 'Ai(λ)' not in used_mappings:
                     column_mapping[col] = 'Ai(λ)'
                     used_mappings.add('Ai(λ)')
-            elif any(x in col极 _lower for x in ['a0', 'a_0', 'absorbancia inicial', 'absorvancia inicial']):
+            elif any(x in col_lower for x in ['a0', 'a_0', 'absorbancia inicial', 'absorvancia inicial']):
                 if 'A0i(λ)' not in used_mappings:
                     column_mapping[col] = 'A0i(λ)'
                     used_mappings.add('A0i(λ)')
