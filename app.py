@@ -747,7 +747,7 @@ def main():
                             else:
                                 st.warning("⚠️ UVA-PF fora da faixa do padrão S2")
                             
-                            if critical_w l >= 370:
+                            if critical_wl >= 370:
                                 st.success("✅ λ Crítico ≥ 370 nm (Conforme requisito ISO)")
                             else:
                                 st.error("❌ λ Crítico < 370 nm (Não conforme)")
