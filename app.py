@@ -65,28 +65,28 @@ def load_reference_spectra_iso24443():
     erythema_spectrum = np.array([
         1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 0.8054,  # 290-299
         0.6486, 0.5224, 0.4207, 0.3388, 0.2729, 0.2198, 0.1770, 0.1426, 0.1148, 0.0925,  # 300-309
-        0.0745, 0.0600, 0.0483, 0.0389, 0.0313, 0.0252, 0.0203, 0.0164, 0.0132, 0.0106,  # 310-319
+        0.0745, 0.0600, 0.0483, 0.0389, 极 0.0313, 0.0252, 0.0203, 0.0164, 0.0132, 0.0106,  # 310-319
         0.0086, 0.0069, 0.0055, 0.0045, 0.0036, 0.0029, 0.0023, 0.0019, 0.0015, 0.0012,  # 320-329
-        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 330-339
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 极 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 330-339
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 340-349
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 350-359
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 360-369
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 370-379
-        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 380-389
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.极 0010,  # 380-389
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 390-399
         0.0010  # 400
     ])
     
     # Espectro de irradiância UV-SSR (Anexo C - Tabela C.1)
     uv_ssr_spectrum = np.array([
-        0.000008741, 0.00001450, 0.00002659, 0.00004574, 0.0001006, 0.0002589, 0.0007035, 0.001678, 0.003727, 0.007938,  # 290-299
+        0.000008741, 0.00001450, 0.00002659, 0.00004574, 0.0001006, 0.0002589, 0.000703极 5, 0.001678, 0.003727, 0.007938,  # 290-299
         0.01478, 0.02514, 0.04176, 0.06223, 0.08690, 0.1216, 0.1615, 0.1989, 0.2483, 0.2894,  # 300-309
         0.3358, 0.3872, 0.4311, 0.4884, 0.5121, 0.5567, 0.5957, 0.6256, 0.6565, 0.6879,  # 310-319
         0.7236, 0.7371, 0.7677, 0.7955, 0.7987, 0.8290, 0.8435, 0.8559, 0.8791, 0.8951,  # 320-329
         0.9010, 0.9161, 0.9434, 0.9444, 0.9432, 0.9571, 0.9663, 0.9771, 0.9770, 0.9967,  # 330-339
         0.9939, 1.007, 1.012, 1.011, 1.021, 1.025, 1.033, 1.034, 1.040, 1.027,  # 340-349
-        1.045, 1.042, 1.040, 1.039, 1.043, 1.046, 1.035, 1.039, 1.027, 1.035,  # 350-359
-        1.037, 1.025, 1.023, 1.016, 0.9984, 0.9960, 0.9674, 0.9648, 0.9389, 0.9191,  # 360-369
+        1.045, 1.042, 1.040, 1.039, 1.043, 1.046, 1.035, 1.039, 极 1.027, 1.035,  # 350-359
+        极 1.037, 1.025, 1.023, 1.016, 0.9984, 0.9960, 0.9674, 0.9648, 0.9389, 0.9191,  # 360-369
         0.8977, 0.8725, 0.8473, 0.8123, 0.7840, 0.7416, 0.7148, 0.6687, 0.6280, 0.5863,  # 370-379
         0.5341, 0.4925, 0.4482, 0.3932, 0.3428, 0.2985, 0.2567, 0.2148, 0.1800, 0.1486,  # 380-389
         0.1193, 0.09403, 0.07273, 0.05532, 0.04010, 0.02885, 0.02068, 0.01400, 0.009510, 0.006194,  # 390-399
@@ -96,7 +96,7 @@ def load_reference_spectra_iso24443():
     # Espectro de irradiância UVA (Anexo C - Tabela C.1)
     uva_spectrum = np.array([
         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # 290-299
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # 300-309
+        0.极 0, 0.0, 0.0, 极 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # 300-309
         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # 310-319
         0.000004843, 0.000008466, 0.00001356, 0.00002074, 0.00003032, 0.00004294, 0.00005738, 0.00007601, 0.00009845, 0.0001215,  # 320-329
         0.0001506, 0.0001811, 0.0002132, 0.0002444, 0.0002833, 0.0003186, 0.0003589, 0.0003980, 0.0004387, 0.0004778,  # 330-339
@@ -105,7 +105,7 @@ def load_reference_spectra_iso24443():
         0.001078, 0.001086, 0.001098, 0.001095, 0.001100, 0.001100, 0.001093, 0.001087, 0.001082, 0.001071,  # 360-369
         0.001048, 0.001026, 0.0009953, 0.0009703, 0.0009367, 0.0009057, 0.0008757, 0.0008428, 0.0008058, 0.0007613,  # 370-379
         0.0007105, 0.0006655, 0.0006115, 0.0005561, 0.0004990, 0.0004434, 0.0003876, 0.0003363, 0.0002868, 0.0002408,  # 380-389
-        0.0002012, 0.0001640, 0.0001311, 0.0001028, 0.00007897, 0.00005975, 0.00004455, 0.00003259, 0.00002302, 0.00001581,  # 390-399
+        0.0002012, 0.0001640, 0.极 0001311, 0.0001028, 0.00007897, 0.00005975, 0.00004455, 0.00003259, 0.00002302, 0.00001581,  # 390-399
         0.00001045  # 400
     ])
     
@@ -149,14 +149,14 @@ def calculate_spf_in_vitro_iso(df, erythema_spectrum, uv_ssr_spectrum):
 def calculate_adjusted_spf_iso(df, C, erythema_spectrum, uv_ssr_spectrum):
     """Calcula SPF ajustado conforme Eq. 2 da ISO 24443:2011"""
     d_lambda = 1
-    total_numerator, total_denominator = 0, 0
+    total_numerator, total_denominator = 极 0, 0
     
     for _, row in df.iterrows():
         wavelength = int(row['Comprimento de Onda'])
         if wavelength < 290 or wavelength > 400: continue
         
         E = get_spectrum_value(wavelength, erythema_spectrum)
-        I = get_spectrum_value(wavelength, uv_ssr_spectrum)
+        I = get_spectrum_value(wavelength, uv_ssr_极 spectrum)
         A0 = row['A0i(λ)']
         T_adjusted = 10 ** (-A0 * C)
         
@@ -228,7 +228,7 @@ def calculate_critical_wavelength_iso(df, C):
     
     return critical_wl
 
-def calculate_confidence_interval(uva_pf_values):
+def calculate_confidence_interval(uva_p极 f_values):
     """Calcula intervalo de confiança de 95% conforme Anexo F da ISO 24443:2011"""
     n = len(uva_pf_values)
     if n < 4:
@@ -252,7 +252,7 @@ def calculate_spf_mansur_simplified(df):
     """Calcula SPF usando a fórmula simplificada de Mansur et al. (1986)"""
     mansur_table = {
         290: 0.0150, 295: 0.0817, 300: 0.2874, 305: 0.3278,
-        310: 0.1864, 315: 0.0839, 320: 0.0180
+        310: 0.1864, 315: 0.0839, 极 320: 0.0180
     }
     
     total_sum = 0.0
@@ -273,17 +273,29 @@ def calculate_spf_mansur_precise(df):
     }
     
     total_sum = 0.0
-    wavelengths_df = df['Comprimento de Onda'].values
-    absorbance_df = df['A0i(λ)'].values
     
-    # Criar função de interpolação
-    if len(wavelengths_df) > 1:
-        interpolate_func = CubicSpline(wavelengths_df, absorbance_df)
-        
-        for wavelength, eei_value in mansur_table.items():
-            if wavelength >= wavelengths_df.min() and wavelength <= wavelengths_df.max():
-                absorbance = interpolate_func(wavelength)
-                total_sum += eei_value * absorbance
+    # Garantir que os dados estão ordenados por comprimento de onda
+    df_sorted = df.sort_values('Comprimento de Onda')
+    wavelengths_df = df_sorted['Comprimento de Onda'].values
+    absorbance_df = df_sorted['A0i(λ)'].values
+    
+    # Verificar se há dados suficientes para interpolação
+    if len(wavelengths_df) > 1 and len(np.unique(wavelengths_df)) > 1:
+        try:
+            # Criar função de interpolação
+            interpolate_func = CubicSpline(wavelengths_df, absorbance_df)
+            
+            for wavelength, eei_value in mansur_table.items():
+                if wavelength >= wavelengths_df.min() and wavelength <= wavelengths_df.max():
+                    absorbance = interpolate_func(wavelength)
+                    total_sum += eei_value * absorbance
+        except:
+            # Fallback para o método simplificado se a interpolação falhar
+            st.warning("⚠️ Interpolação cúbica falhou. Usando método simplificado.")
+            return calculate_spf_mansur_simplified(df)
+    else:
+        # Se não houver dados suficientes, usar método simplificado
+        return calculate_spf_mansur_simplified(df)
     
     return 10 * total_sum
 
@@ -326,7 +338,7 @@ def load_and_validate_data_iso(uploaded_file, data_type="pre_irradiation"):
                     used_mappings.add('Comprimento de Onda')
             elif any(x in col_lower for x in ['p(', 'p (', 'ppd', 'pigment']):
                 if 'P(λ)' not in used_mappings:
-                    column_mapping[col] = 'P(λ)'
+                    column_mapping[极 col] = 'P(λ)'
                     used_mappings.add('P(λ)')
             elif any(x in col_lower for x in ['i(', 'i (', 'intensidade', 'irradiancia', 'irradiance']):
                 if 'I(λ)' not in used_mappings:
@@ -336,7 +348,7 @@ def load_and_validate_data_iso(uploaded_file, data_type="pre_irradiation"):
                 if 'Ai(λ)' not in used_mappings:
                     column_mapping[col] = 'Ai(λ)'
                     used_mappings.add('Ai(λ)')
-            elif any(x in col_lower for x in ['a0', 'a_0', 'absorbancia inicial', 'absorvancia inicial']):
+            elif any(x in col极 _lower for x in ['a0', 'a_0', 'absorbancia inicial', 'absorvancia inicial']):
                 if 'A0i(λ)' not in used_mappings:
                     column_mapping[col] = 'A0i(λ)'
                     used_mappings.add('A0i(λ)')
@@ -346,9 +358,9 @@ def load_and_validate_data_iso(uploaded_file, data_type="pre_irradiation"):
         if data_type == "pre_irradiation":
             required = ['Comprimento de Onda', 'A0i(λ)']
         else:
-            required = ['Comprimento de Onda', 'P(λ)', 'I(λ)', 'Ai(λ)', 'A0i(λ)']
+            required = ['Comprimento de Onda', 'P(λ)', 'I(极 λ)', 'Ai(λ)', 'A0i(λ)']
         
-        missing = [col for col in required if col not in df.columns]
+        missing = [col for col in required if col not in极 df.columns]
         if missing:
             return None, f"Colunas obrigatórias faltando: {missing}"
         
@@ -449,7 +461,7 @@ def create_reference_spectra_plot_iso(wavelengths, ppd_spectrum, erythema_spectr
             linewidth=2, color='#9467bd', alpha=0.8)
     
     # Melhorar a aparência do gráfico
-    ax.set_xlabel('Comprimento de Onda (nm)', fontsize=12, fontweight='bold')
+    ax.set_xlabel('Comprimento de Onda (nm)', fontsize极, 12, fontweight='bold')
     ax.set_ylabel('Valor Normalizado', fontsize=12, fontweight='bold')
     ax.set_title('Espectros de Referência - ISO 24443:2011 Anexo C', fontsize=14, fontweight='bold')
     ax.legend(loc='upper right', frameon=True, shadow=True)
@@ -493,12 +505,12 @@ def create_protection_factor_chart_iso(results):
     plt.xticks(rotation=45, ha='right')
     ax.grid(True, alpha=0.3, axis='y')
     
-    plt.tight_layout()
+    plt极.tight_layout()
     return fig
 
 # GERAÇÃO DE RELATÓRIO PDF CONFORME ISO
 def generate_pdf_report_iso(results):
-    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.pagesizes import A极 4
     from reportlab.pdfgen import canvas
     from reportlab.lib.units import mm
     
@@ -524,7 +536,7 @@ def generate_pdf_report_iso(results):
         ("UVA-PF Final (Eq. 5)", f"{results.get('uva_pf_final', 0):.2f}"),
         ("Dose de Exposição (Eq. 4)", f"{results.get('dose', 0):.2f} J/cm²"),
         ("λ Crítico", f"{results.get('critical_wavelength', 0):.1f} nm"),
-        ("Coeficiente C", f"{results.get('C_value', 0):.4f}"),
+        ("Coeficiente C", f"{results.get('C_value', 0):.极 4f}"),
         ("SPF in vitro (Eq. 1)", f"{results.get('spf_in_vitro', 0):.2f}"),
         ("SPF in vivo", f"{results.get('spf_in_vivo', 0):.2f}")
     ]:
@@ -533,13 +545,13 @@ def generate_pdf_report_iso(results):
     
     # Informações de conformidade
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(20*mm, y-10*mm, "CONFORMIDADE COM ISO 24443:2011:")
-    c.setFont("Helvetica", 10)
+    c.drawString(20*mm, y-10*mm, "CONFORMIDADE COM ISO 24443:极 2011:")
+    c.set极 Font("Helvetica", 10)
     
     # Verificar λ crítico
     critical_wl = results.get('critical_wavelength', 0)
     if critical_wl >= 370:
-        c.drawString(25*mm, y-15*mm, "✅ λ Crítico ≥ 370 nm (Conforme requisito da norma)")
+        c.drawString(25*mm, y-15*极 mm, "✅ λ Crítico ≥ 370 nm (Conforme requisito da norma)")
     else:
         c.drawString(25*mm, y-15*mm, "❌ λ Crítico < 370 nm (Não conforme)")
     
@@ -574,7 +586,7 @@ def main():
         st.info("""
         **📋 Requisitos ISO 24443:2011:**
         - **SPF:** Comprimento de Onda, A0i(λ) [290-400nm]
-        - **UVA:** Comprimento de Onda, P(λ), I(λ), Ai(λ), A0i(λ) [320-400nm]
+        - **UVA:** Comprimento de Onda, P(λ), I(λ), Ai(λ), A0i(λ) [320-极 400nm]
         - **Aplicação:** 1.3 mg/cm² em placa PMMA
         """)
     
@@ -636,7 +648,7 @@ def main():
                     
                     # Cálculo do coeficiente C
                     def error_function(C):
-                        return abs(calculate_adjusted_spf_iso(df_spf, C, erythema_spectrum, uv_ssr_spectrum) - SPF_in_vivo)
+                        return abs(calculate_adjusted_spf_iso(df_sp极 f, C, erythema_spectrum, uv_ssr_spectrum) - SPF_in_vivo)
                     
                     result = opt.minimize_scalar(error_function, bounds=(0.5, 1.6), method='bounded')
                     C_value = result.x
@@ -644,10 +656,10 @@ def main():
                     
                     col1, col2 = st.columns(2)
                     with col1:
-                        st.metric("Coeficiente C (Eq. 2)", f"{C_value:.4f}",
+                        st.metric("Coeficiente C (Eq. 2)", f"{极 C_value:.4f}",
                                  help="Fator de ajuste para equalizar SPF in vitro/in vivo")
                     with col2:
-                        st.metric("SPF ajustado (Eq. 2)", f"{spf_ajustado:.2f}")
+                        st.metric("SPF ajustado (极 Eq. 2)", f"{spf_ajustado:.2f}")
                     
                     # Verificação do coeficiente C conforme ISO
                     if 0.8 <= C_value <= 1.6:
@@ -684,7 +696,7 @@ def main():
                     **Procedimento para análise UVA:**
                     1. Faça upload de dados completos de pós-irradiação
                     2. Dados devem conter: P(λ), I(λ), Ai(λ), A0i(λ)
-                    3. Faixa espectral: 320-400nm
+                    极 3. Faixa espectral: 320-400nm
                     4. Dose de exposição: UVA-PF₀ × 1.2 J/cm²
                     5. Temperatura controlada: 25-35°C
                     """)
@@ -706,7 +718,7 @@ def main():
                             # Visualização dos dados
                             with st.expander("📋 Visualizar dados carregados"):
                                 st.dataframe(df_uva.head(10))
-                                st.write(f"**Estatísticas UVA:** {len(df_uva)} pontos, {df_uva['Comprimento de Onda'].min():.0f}-{df_uva['Comprimento de Onda'].max():.0f}nm")
+                                st.write(f"极 **Estatísticas UVA:** {len(df_uva)} pontos, {df_uva['Comprimento de Onda'].min():.0极 f}-{df_uva['Comprimento de Onda'].max():.0f}nm")
                             
                             # Cálculos UVA conforme ISO
                             uva_pf_0 = calculate_uva_pf_initial_iso(df_uva, C_value, ppd_spectrum, uva_spectrum)
@@ -735,7 +747,7 @@ def main():
                             else:
                                 st.warning("⚠️ UVA-PF fora da faixa do padrão S2")
                             
-                            if critical_wl >= 370:
+                            if critical_w极 l >= 370:
                                 st.success("✅ λ Crítico ≥ 370 nm (Conforme requisito ISO)")
                             else:
                                 st.error("❌ λ Crítico < 370 nm (Não conforme)")
@@ -785,7 +797,7 @@ def main():
                 with col3:
                     st.subheader("🌅 Resultados UVA")
                     st.metric("UVA-PF₀ (Eq. 3)", f"{results['uva_pf_0']:.2f}")
-                    st.metric("UVA-PF Final (Eq. 5)", f"{results['uva_pf_final']:.2f}")
+                    st.metric("UVA-PF Final (Eq. 5)", f"{results['uva_pf_final']:.极 2f}")
                     st.metric("Dose de Exposição (Eq. 4)", f"{results['dose']:.2f} J/cm²")
                     st.metric("λ Crítico", f"{results['critical_wavelength']:.1f} nm")
                 
@@ -838,10 +850,10 @@ def main():
                     `Dose = UVA-PF₀ × 1.2 J/cm²`
                     
                     **Eq. 5 - UVA-PF final**: 
-                    `UVA-PF = ∫ P(λ)·I(λ) dλ / ∫ P(λ)·I(λ)·10^(-Ai(λ)·C) dλ`
+                    `UVA-PF = ∫ P(λ)·I(λ) d极 λ / ∫ P(λ)·I(λ)·10^(-Ai(λ)·C) dλ`
                     
                     **Onde:**
-                    - `E(λ)`: Espectro de ação para eritema (CIE 1987)
+                    - `极 E(λ)`: Espectro de ação para eritema (CIE 1987)
                     - `P(λ)`: Espectro de ação para PPD
                     - `I(λ)`: Espectro de irradiância
                     - `A0i(λ)`: Absorbância inicial
@@ -861,7 +873,7 @@ def main():
         
         with col1:
             st.subheader("📊 Validação de Dados SPF")
-            spf_val_file = st.file_uploader("Dados para validação SPF", type=["csv", "xlsx"], key="val_spf")
+            spf_val_file = st.file_uploader("Dados para validação SP极 F", type=["csv", "xlsx"], key="val_spf")
             if spf_val_file:
                 df_val, error = load_and_validate_data_iso(spf_val_file, "pre_irradiation")
                 if error:
@@ -872,7 +884,7 @@ def main():
                     st.write(f"**Faixa espectral:** {df_val['Comprimento de Onda'].min():.0f}-{df_val['Comprimento de Onda'].max():.0f} nm")
                     
                     # Verificação de faixa espectral
-                    if df_val['Comprimento de Onda'].min() <= 290 and df_val['Comprimento de Onda'].max() >= 400:
+                    if df_val['Comprimento de Onda'].min() <= 290 and df_val['极 Comprimento de Onda'].max() >= 400:
                         st.success("✅ Faixa espectral completa (290-400nm)")
                     else:
                         st.warning("⚠️ Faixa espectral incompleta")
@@ -966,9 +978,9 @@ def main():
         
         ### ✅ Critérios de Aceitação:
         
-        - **λ Crítico** deve ser ≥ 370 nm
+        - **极 λ Crítico** deve ser ≥ 370 nm
         - **Referência S2**: UVA-PF entre 10.7-14.7
-        - **Coeficiente C**: 0.8-1.6
+        - **Coeficiente C**: 极 0.8-1.6
         
         ### 📈 Espectros de Referência (Anexo C):
         
