@@ -360,7 +360,7 @@ def load_and_validate_data_iso(uploaded_file, data_type="pre_irradiation"):
         else:
             required = ['Comprimento de Onda', 'P(λ)', 'I(极 λ)', 'Ai(λ)', 'A0i(λ)']
         
-        missing = [col for col in required if col not in极 df.columns]
+        missing = [col for col in required if col not in df.columns]
         if missing:
             return None, f"Colunas obrigatórias faltando: {missing}"
         
