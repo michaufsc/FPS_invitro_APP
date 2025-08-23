@@ -228,7 +228,7 @@ def calculate_critical_wavelength_iso(df, C):
     
     return critical_wl
 
-def calculate_confidence_interval(uva_p极 f_values):
+def calculate_confidence_interval(uva_pf_values):
     """Calcula intervalo de confiança de 95% conforme Anexo F da ISO 24443:2011"""
     n = len(uva_pf_values)
     if n < 4:
