@@ -10,13 +10,6 @@ import base64
 from io import BytesIO
 import logging
 from scipy.integrate import trapz
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import mm
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
 # Configuração da página
 st.set_page_config(
@@ -362,7 +355,7 @@ def validate_uva_data_iso(df):
 
 # FUNÇÕES PARA GRÁFICOS MELHORADOS
 def create_absorbance_plot_iso(df_pre, df_post=None, critical_wavelength=None):
-    """Cria gráfico de absorbância con design ISO 24443"""
+    """Cria gráfico de absorbância com design ISO 24443"""
     fig, ax = plt.subplots(figsize=(12, 6))
     
     # Plotar dados de pré-irradiação
@@ -465,423 +458,479 @@ def create_protection_factor_chart_iso(results):
 
 # GERAÇÃO DE RELATÓRIO PDF CONFORME ISO
 def generate_pdf_report_iso(results):
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.units import mm
+    
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
-    elements = []
-    styles = getSampleStyleSheet()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
     
-    # Estilos personalizados
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=16,
-        spaceAfter=30,
-        alignment=TA_CENTER
-    )
+    # Cabeçalho
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(20*mm, height-20*mm, "RELATÓRIO DE ANÁLISE UVA-PF - ISO 24443:2011")
+    c.setFont("Helvetica", 10)
+    c.drawString(20*mm, height-25*mm, f"Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    c.drawString(20*mm, height-30*mm, "Método in vitro para determinação da proteção UVA de produtos de proteção solar")
     
-    heading_style = ParagraphStyle(
-        'CustomHeading',
-        parent=styles['Heading2'],
-        fontSize=12,
-        spaceAfter=12,
-        spaceBefore=12
-    )
+    # Resultados
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(20*mm, height-45*mm, "RESULTADOS OBTIDOS:")
+    c.setFont("Helvetica", 10)
     
-    normal_style = ParagraphStyle(
-        'CustomNormal',
-        parent=styles['Normal'],
-        fontSize=10,
-        spaceAfter=6
-    )
+    y = height - 50*mm
+    for label, value in [
+        ("UVA-PF₀ (Eq. 3)", f"{results.get('uva_pf_0', 0):.2f}"),
+        ("UVA-PF Final (Eq. 5)", f"{results.get('uva_pf_final', 0):.2f}"),
+        ("Dose de Exposição (Eq. 4)", f"{results.get('dose', 0):.2f} J/cm²"),
+        ("λ Crítico", f"{results.get('critical_wavelength', 0):.1f} nm"),
+        ("Coeficiente C", f"{results.get('C_value', 0):.4f}"),
+        ("SPF in vitro (Eq. 1)", f"{results.get('spf_in_vitro', 0):.2f}"),
+        ("SPF in vivo", f"{results.get('spf_in_vivo', 0):.2f}")
+    ]:
+        c.drawString(25*mm, y, f"{label}: {value}")
+        y -= 5*mm
     
-    # Título do relatório
-    elements.append(Paragraph("RELATÓRIO DE ANÁLISE DE PROTEÇÃO SOLAR", title_style))
-    elements.append(Paragraph("Conforme ISO 24443:2011 - Determinação in vitro da proteção UVA", heading_style))
+    # Informações de conformidade
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(20*mm, y-10*mm, "CONFORMIDADE COM ISO 24443:2011:")
+    c.setFont("Helvetica", 10)
     
-    # Informações do teste
-    elements.append(Paragraph("INFORMAÇÕES DO TESTE", heading_style))
-    
-    test_info = [
-        ["Data da Análise:", datetime.now().strftime("%d/%m/%Y %H:%M")],
-        ["Amostra:", results.get('sample_name', 'Não especificado')],
-        ["Operador:", results.get('operator', 'Não especificado')],
-        ["Número de Réplicas:", str(results.get('num_replicas', 1))]
-    ]
-    
-    test_table = Table(test_info, colWidths=[80*mm, 80*mm])
-    test_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    
-    elements.append(test_table)
-    elements.append(Spacer(1, 12))
-    
-    # Resultados principais
-    elements.append(Paragraph("RESULTADOS PRINCIPAIS", heading_style))
-    
-    main_results = [
-        ["Parâmetro", "Valor", "Unidade", "Status"],
-        ["SPF in vitro", f"{results.get('spf_in_vitro', 0):.2f}", "-", "Calculado"],
-        ["SPF in vivo declarado", f"{results.get('spf_in_vivo', 0):.2f}", "-", "Entrada"],
-        ["Fator de Correção (C)", f"{results.get('correction_factor', 0):.4f}", "-", "Calculado"],
-        ["SPF Ajustado", f"{results.get('spf_ajustado', 0):.2f}", "-", "Calculado"],
-        ["UVA-PF₀ (Inicial)", f"{results.get('uva_pf_0', 0):.2f}", "-", "Calculado"],
-        ["UVA-PF Final", f"{results.get('uva_pf_final', 0):.2f}", "-", "Calculado"],
-        ["Dose de Exposição UVA", f"{results.get('exposure_dose', 0):.2f}", "J/cm²", "Calculado"],
-        ["Comprimento de Onda Crítico", f"{results.get('critical_wavelength', 0):.1f}", "nm", "Calculado"]
-    ]
-    
-    # Verificar conformidade com ISO
+    # Verificar λ crítico
     critical_wl = results.get('critical_wavelength', 0)
-    uva_pf_ratio = results.get('uva_pf_final', 0) / results.get('spf_in_vivo', 1) if results.get('spf_in_vivo', 0) > 0 else 0
-    
-    status_critical = "CONFORME" if critical_wl >= 370 else "NÃO CONFORME"
-    status_ratio = "CONFORME" if uva_pf_ratio >= 0.33 else "NÃO CONFORME"
-    
-    main_results.append(["λc Status", status_critical, "-", "ISO 24443"])
-    main_results.append(["UVA-PF/SPF Ratio", f"{uva_pf_ratio:.3f}", "-", "Calculado"])
-    main_results.append(["Ratio Status", status_ratio, "-", "ISO 24443"])
-    
-    main_table = Table(main_results, colWidths=[50*mm, 30*mm, 20*mm, 30*mm])
-    main_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('BACKGROUND', (-1, -3), (-1, -1), colors.lightgreen if status_critical == "CONFORME" else colors.pink),
-        ('BACKGROUND', (-1, -1), (-1, -1), colors.lightgreen if status_ratio == "CONFORME" else colors.pink)
-    ]))
-    
-    elements.append(main_table)
-    elements.append(Spacer(1, 12))
-    
-    # Estatísticas se houver múltiplas réplicas
-    if results.get('num_replicas', 1) > 1:
-        elements.append(Paragraph("ANÁLISE ESTATÍSTICA", heading_style))
-        
-        uva_pf_values = results.get('uva_pf_values', [])
-        if uva_pf_values and len(uva_pf_values) > 1:
-            ci, ci_percent, mean_uva_pf = calculate_confidence_interval(uva_pf_values)
-            
-            stats_data = [
-                ["Parâmetro", "Valor"],
-                ["Número de Réplicas", str(len(uva_pf_values))],
-                ["UVA-PF Médio", f"{mean_uva_pf:.2f}"],
-                ["Desvio Padrão", f"{np.std(uva_pf_values, ddof=1):.3f}"],
-                ["Coeficiente de Variação", f"{(np.std(uva_pf_values, ddof=1)/mean_uva_pf*100):.2f}%"],
-                ["Intervalo de Confiança (95%)", f"± {ci:.3f}"],
-                ["IC Relativo", f"± {ci_percent:.2f}%"]
-            ]
-            
-            stats_table = Table(stats_data, colWidths=[70*mm, 50*mm])
-            stats_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.darkgreen),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black)
-            ]))
-            
-            elements.append(stats_table)
-            elements.append(Spacer(1, 12))
-    
-    # Conclusão
-    elements.append(Paragraph("CONCLUSÃO", heading_style))
-    
-    conclusion_text = f"""
-    O produto analisado {results.get('sample_name', '')} apresenta os seguintes parâmetros de proteção solar:
-    - SPF in vitro: {results.get('spf_in_vitro', 0):.2f}
-    - UVA-PF Final: {results.get('uva_pf_final', 0):.2f}
-    - Comprimento de Onda Crítico: {results.get('critical_wavelength', 0):.1f} nm
-    
-    """
-    
     if critical_wl >= 370:
-        conclusion_text += "✓ ATENDE ao requisito de λc ≥ 370 nm conforme ISO 24443:2011\n"
+        c.drawString(25*mm, y-15*mm, "✅ λ Crítico ≥ 370 nm (Conforme requisito da norma)")
     else:
-        conclusion_text += "✗ NÃO ATENDE ao requisito de λc ≥ 370 nm\n"
+        c.drawString(25*mm, y-15*mm, "❌ λ Crítico < 370 nm (Não conforme)")
     
-    if uva_pf_ratio >= 0.33:
-        conclusion_text += "✓ ATENDE ao requisito de UVA-PF/SPF ≥ 1/3 conforme ISO 24443:2011"
+    # Verificar faixa UVA-PF para referência S2 (se aplicável)
+    uva_pf_final = results.get('uva_pf_final', 0)
+    if 10.7 <= uva_pf_final <= 14.7:
+        c.drawString(25*mm, y-20*mm, "✅ UVA-PF dentro da faixa de referência S2 (10.7-14.7)")
     else:
-        conclusion_text += "✗ NÃO ATENDE ao requisito de UVA-PF/SPF ≥ 1/3"
+        c.drawString(25*mm, y-20*mm, "⚠️ UVA-PF fora da faixa de referência S2")
     
-    elements.append(Paragraph(conclusion_text, normal_style))
-    elements.append(Spacer(1, 20))
-    
-    # Rodapé
-    footer_text = "Relatório gerado automaticamente - Sistema de Análise de Proteção Solar ISO 24443:2011"
-    elements.append(Paragraph(footer_text, ParagraphStyle(
-        'Footer',
-        parent=styles['Normal'],
-        fontSize=8,
-        alignment=TA_CENTER,
-        textColor=colors.grey
-    )))
-    
-    # Gerar o PDF
-    doc.build(elements)
+    c.save()
     buffer.seek(0)
     return buffer
 
-# Função para download do PDF
-def get_pdf_download_link(pdf_buffer, filename):
-    b64 = base64.b64encode(pdf_buffer.getvalue()).decode()
-    return f'<a href="data:application/pdf;base64,{b64}" download="{filename}">📄 Download do Relatório PDF</a>'
-
-# INTERFACE PRINCIPAL STREAMLIT
+# INTERFACE PRINCIPAL CONFORME ISO 24443:2011
 def main():
     st.title("🌞 Análise de Proteção Solar - ISO 24443:2011")
-    st.markdown("""
-    Sistema para determinação **in vitro** da proteção UVA de produtos de proteção solar, 
-    conforme norma internacional **ISO 24443:2011**.
-    """)
     
     # Carregar espectros de referência
     spectra = get_reference_spectra()
+    wavelengths = spectra['wavelengths']
+    ppd_spectrum = spectra['ppd_spectrum']
+    erythema_spectrum = spectra['erythema_spectrum']
+    uv_ssr_spectrum = spectra['uv_ssr_spectrum']
+    uva_spectrum = spectra['uva_spectrum']
     
-    # Sidebar
     with st.sidebar:
-        st.header("📁 Upload de Dados")
+        st.title("Navegação - ISO 24443:2011")
+        page = st.radio("Selecione:", ["Análise Completa", "Validação de Dados", "Sobre a Norma", "Espectros de Referência"])
         
-        # Upload de dados de pré-irradiação
-        st.subheader("1. Dados de Pré-Irradiação")
-        uploaded_file_pre = st.file_uploader(
-            "Arquivo com absorbância inicial (A0i(λ))",
-            type=['csv', 'xlsx', 'xls'],
-            key="pre_irradiation"
-        )
-        
-        # Upload de dados de pós-irradiação (UVA)
-        st.subheader("2. Dados de Pós-Irradiação (UVA)")
-        uploaded_file_uva = st.file_uploader(
-            "Arquivo com dados UVA completos",
-            type=['csv', 'xlsx', 'xls'],
-            key="uva_data"
-        )
-        
-        # Parâmetros de entrada
-        st.subheader("⚙️ Parâmetros de Entrada")
-        spf_in_vivo = st.number_input(
-            "SPF in vivo declarado:",
-            min_value=1.0,
-            max_value=100.0,
-            value=30.0,
-            step=1.0,
-            help="Valor do SPF determinado in vivo do produto"
-        )
-        
-        num_replicas = st.number_input(
-            "Número de réplicas:",
-            min_value=1,
-            max_value=10,
-            value=3,
-            step=1,
-            help="Número de medidas repetidas para análise estatística"
-        )
-        
-        # Botão de análise
-        analyze_button = st.button(
-            "🚀 Executar Análise Completa",
-            type="primary",
-            use_container_width=True
-        )
-    
-    # Colunas principais
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        # Visualização de dados
-        if uploaded_file_pre:
-            df_pre, error = load_and_validate_data_iso(uploaded_file_pre, "pre_irradiation")
-            if error:
-                st.error(f"Erro nos dados de pré-irradiação: {error}")
-            else:
-                st.subheader("📊 Dados de Pré-Irradiação")
-                st.dataframe(df_pre.head(), use_container_width=True)
-                
-                # Gráfico de absorbância
-                fig_abs = create_absorbance_plot_iso(df_pre)
-                st.pyplot(fig_abs)
-        
-        if uploaded_file_uva:
-            df_uva, error = load_and_validate_data_iso(uploaded_file_uva, "post_irradiation")
-            if error:
-                st.error(f"Erro nos dados UVA: {error}")
-            else:
-                st.subheader("📊 Dados UVA Completos")
-                st.dataframe(df_uva.head(), use_container_width=True)
-    
-    with col2:
-        # Espectros de referência
-        st.subheader("📈 Espectros de Referência")
-        fig_ref = create_reference_spectra_plot_iso(
-            spectra['wavelengths'],
-            spectra['ppd_spectrum'],
-            spectra['erythema_spectrum'],
-            spectra['uva_spectrum']
-        )
-        st.pyplot(fig_ref)
-        
-        # Informações da norma
+        st.markdown("---")
         st.info("""
-        **Requisitos ISO 24443:2011:**
-        - λc ≥ 370 nm
-        - UVA-PF/SPF ≥ 1/3
+        **📋 Requisitos ISO 24443:2011:**
+        - **SPF:** Comprimento de Onda, A0i(λ) [290-400nm]
+        - **UVA:** Comprimento de Onda, P(λ), I(λ), Ai(λ), A0i(λ) [320-400nm]
+        - **Aplicação:** 1.3 mg/cm² em placa PMMA
         """)
     
-    # Executar análise
-    if analyze_button and uploaded_file_pre:
-        with st.spinner("🔬 Executando análise completa..."):
-            try:
-                # Carregar dados
-                df_pre, error = load_and_validate_data_iso(uploaded_file_pre, "pre_irradiation")
+    if page == "Análise Completa":
+        st.header("Análise Completa - ISO 24443:2011")
+        
+        tab1, tab2, tab3 = st.tabs(["📊 SPF Inicial", "🔬 UVA", "📈 Resultados"])
+        
+        with tab1:
+            st.subheader("Cálculo do SPF in vitro (Eq. 1-2)")
+            
+            with st.expander("ℹ️ Instruções Conforme ISO 24443:6.1-6.7"):
+                st.markdown("""
+                **Procedimento para análise SPF:**
+                1. Faça upload de dados de absorbância inicial (A0i(λ))
+                2. Dados devem cobrir 290-400nm em incrementos de 1nm
+                3. Densidade de aplicação: 1.3 mg/cm²
+                4. Placa PMMA com superfície rugosa
+                5. Temperatura: 25-35°C durante secagem e irradiação
+                """)
+            
+            uploaded_file_spf = st.file_uploader("Dados PRÉ-IRRADIAÇÃO (A0i(λ))", type=["csv", "xlsx"], key="spf_upload")
+            
+            if uploaded_file_spf:
+                df_spf, error = load_and_validate_data_iso(uploaded_file_spf, "pre_irradiation")
                 if error:
-                    st.error(error)
-                    return
+                    st.error(f"❌ {error}")
+                else:
+                    st.success("✅ Dados SPF validados conforme ISO 24443!")
+                    
+                    # Visualização dos dados
+                    with st.expander("📋 Visualizar dados carregados"):
+                        st.dataframe(df_spf.head(10))
+                        st.write(f"**Estatísticas:** {len(df_spf)} pontos, {df_spf['Comprimento de Onda'].min():.0f}-{df_spf['Comprimento de Onda'].max():.0f}nm")
+                    
+                    # Cálculo SPF in vitro
+                    spf_in_vitro = calculate_spf_in_vitro_iso(df_spf, erythema_spectrum, uv_ssr_spectrum)
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("SPF in vitro (Eq. 1)", f"{spf_in_vitro:.2f}",
+                                 help="Fator de proteção solar calculado in vitro")
+                    
+                    SPF_in_vivo = st.number_input("SPF in vivo medido:", 
+                                                min_value=1.0, value=30.0, step=0.1,
+                                                help="Valor do SPF determinado in vivo para calibrar o coeficiente C")
+                    
+                    # Cálculo do coeficiente C
+                    def error_function(C):
+                        return abs(calculate_adjusted_spf_iso(df_spf, C, erythema_spectrum, uv_ssr_spectrum) - SPF_in_vivo)
+                    
+                    result = opt.minimize_scalar(error_function, bounds=(0.5, 1.6), method='bounded')
+                    C_value = result.x
+                    spf_ajustado = calculate_adjusted_spf_iso(df_spf, C_value, erythema_spectrum, uv_ssr_spectrum)
+                    
+                    with col2:
+                        st.metric("Coeficiente C (Eq. 2)", f"{C_value:.4f}",
+                                 help="Fator de ajuste para equalizar SPF in vitro/in vivo")
+                        st.metric("SPF ajustado (Eq. 2)", f"{spf_ajustado:.2f}")
+                    
+                    # Verificação do coeficiente C conforme ISO
+                    if 0.8 <= C_value <= 1.6:
+                        st.success("✅ Coeficiente C dentro da faixa válida (0.8-1.6)")
+                    else:
+                        st.warning("⚠️ Coeficiente C fora da faixa recomendada. Verifique a aplicação do produto.")
+                    
+                    # Gráfico de absorbância inicial
+                    st.subheader("📊 Visualização dos Dados")
+                    fig_absorbance = create_absorbance_plot_iso(df_spf)
+                    st.pyplot(fig_absorbance)
+                    
+                    st.session_state.current_results.update({
+                        'spf_in_vitro': spf_in_vitro,
+                        'spf_in_vivo': SPF_in_vivo,
+                        'C_value': C_value,
+                        'spf_ajustado': spf_ajustado,
+                        'dados_pre': df_spf
+                    })
+        
+        with tab2:
+            st.subheader("Análise UVA (Eq. 3-5)")
+            
+            if 'C_value' not in st.session_state.current_results:
+                st.warning("⏳ Calcule primeiro o SPF para obter o coeficiente C")
+            else:
+                C_value = st.session_state.current_results['C_value']
+                st.success(f"📊 Coeficiente C: {C_value:.4f}")
                 
-                # Calcular SPF in vitro
-                spf_in_vitro = calculate_spf_in_vitro_iso(
-                    df_pre, 
-                    spectra['erythema_spectrum'], 
-                    spectra['uv_ssr_spectrum']
-                )
+                with st.expander("ℹ️ Instruções Conforme ISO 24443:6.8-6.10"):
+                    st.markdown("""
+                    **Procedimento para análise UVA:**
+                    1. Faça upload de dados completos de pós-irradiação
+                    2. Dados devem conter: P(λ), I(λ), Ai(λ), A0i(λ)
+                    3. Faixa espectral: 320-400nm
+                    4. Dose de exposição: UVA-PF₀ × 1.2 J/cm²
+                    5. Temperatura controlada: 25-35°C
+                    """)
                 
-                # Calcular fator de correção C
-                C = spf_in_vivo / spf_in_vitro if spf_in_vitro > 0 else 1.0
-                
-                # Calcular SPF ajustado
-                spf_ajustado = calculate_adjusted_spf_iso(
-                    df_pre, 
-                    C, 
-                    spectra['erythema_spectrum'], 
-                    spectra['uv_ssr_spectrum']
-                )
-                
-                # Calcular comprimento de onda crítico
-                critical_wavelength = calculate_critical_wavelength_iso(df_pre, C)
-                
-                # Inicializar resultados UVA
-                uva_pf_0, uva_pf_final, exposure_dose = 0, 0, 0
+                uploaded_file_uva = st.file_uploader("Dados PÓS-IRRADIAÇÃO (P(λ), I(λ), Ai(λ), A0i(λ))", 
+                                                    type=["csv", "xlsx"], key="uva_upload")
                 
                 if uploaded_file_uva:
                     df_uva, error = load_and_validate_data_iso(uploaded_file_uva, "post_irradiation")
-                    if not error:
-                        # Calcular UVA-PF₀
-                        uva_pf_0 = calculate_uva_pf_initial_iso(
-                            df_uva, 
-                            C, 
-                            spectra['ppd_spectrum'], 
-                            spectra['uva_spectrum']
-                        )
-                        
-                        # Calcular dose de exposição
-                        exposure_dose = calculate_exposure_dose_iso(uva_pf_0)
-                        
-                        # Calcular UVA-PF final
-                        uva_pf_final = calculate_uva_pf_final_iso(
-                            df_uva, 
-                            C, 
-                            spectra['ppd_spectrum'], 
-                            spectra['uva_spectrum']
-                        )
+                    if error:
+                        st.error(f"❌ {error}")
+                    else:
+                        is_valid, validation_msg = validate_uva_data_iso(df_uva)
+                        if not is_valid:
+                            st.error(f"❌ {validation_msg}")
+                        else:
+                            st.success("✅ Dados UVA validados conforme ISO 24443!")
+                            
+                            # Visualização dos dados
+                            with st.expander("📋 Visualizar dados carregados"):
+                                st.dataframe(df_uva.head(10))
+                                st.write(f"**Estatísticas UVA:** {len(df_uva)} pontos, {df_uva['Comprimento de Onda'].min():.0f}-{df_uva['Comprimento de Onda'].max():.0f}nm")
+                            
+                            # Cálculos UVA conforme ISO
+                            uva_pf_0 = calculate_uva_pf_initial_iso(df_uva, C_value, ppd_spectrum, uva_spectrum)
+                            dose = calculate_exposure_dose_iso(uva_pf_0)
+                            uva_pf_final = calculate_uva_pf_final_iso(df_uva, C_value, ppd_spectrum, uva_spectrum)
+                            critical_wl = calculate_critical_wavelength_iso(df_uva, C_value)
+                            
+                            col1, col2, col3, col4 = st.columns(4)
+                            with col1: 
+                                st.metric("UVA-PF₀ (Eq. 3)", f"{uva_pf_0:.2f}",
+                                         help="Fator de Proteção UVA inicial")
+                            with col2: 
+                                st.metric("Dose (Eq. 4)", f"{dose:.2f} J/cm²",
+                                         help="Dose de exposição UVA necessária")
+                            with col3: 
+                                st.metric("UVA-PF (Eq. 5)", f"{uva_pf_final:.2f}",
+                                         help="Fator de Proteção UVA final")
+                            with col4: 
+                                status = "✅" if critical_wl >= 370 else "⚠️"
+                                st.metric("λ Crítico", f"{critical_wl:.1f} nm", 
+                                         f"{status} {'≥370nm' if critical_wl >= 370 else '<370nm'}")
+                            
+                            # Verificações de conformidade
+                            if 10.7 <= uva_pf_final <= 14.7:
+                                st.success("✅ UVA-PF dentro da faixa do padrão de referência S2 (10.7-14.7)")
+                            else:
+                                st.warning("⚠️ UVA-PF fora da faixa do padrão S2")
+                            
+                            if critical_wl >= 370:
+                                st.success("✅ λ Crítico ≥ 370 nm (Conforme requisito ISO)")
+                            else:
+                                st.error("❌ λ Crítico < 370 nm (Não conforme)")
+                            
+                            # Gráficos para análise UVA
+                            st.subheader("📊 Visualização dos Dados UVA")
+                            
+                            fig_absorbance_uva = create_absorbance_plot_iso(
+                                st.session_state.current_results['dados_pre'], 
+                                df_uva, 
+                                critical_wl
+                            )
+                            st.pyplot(fig_absorbance_uva)
+                            
+                            st.session_state.current_results.update({
+                                'uva_pf_0': uva_pf_0,
+                                'dose': dose,
+                                'uva_pf_final': uva_pf_final,
+                                'critical_wavelength': critical_wl,
+                                'dados_post': df_uva
+                            })
+        
+        with tab3:
+            st.subheader("📈 Resultados Completos")
+            
+            if 'uva_pf_final' not in st.session_state.current_results:
+                st.warning("⏳ Complete as análises anteriores para ver os resultados completos")
+            else:
+                results = st.session_state.current_results
                 
-                # Simular múltiplas réplicas para demonstração
-                uva_pf_values = [uva_pf_final * (0.95 + 0.1 * np.random.random()) for _ in range(num_replicas)]
-                
-                # Armazenar resultados
-                results = {
-                    'spf_in_vitro': spf_in_vitro,
-                    'spf_in_vivo': spf_in_vivo,
-                    'correction_factor': C,
-                    'spf_ajustado': spf_ajustado,
-                    'uva_pf_0': uva_pf_0,
-                    'uva_pf_final': uva_pf_final,
-                    'exposure_dose': exposure_dose,
-                    'critical_wavelength': critical_wavelength,
-                    'uva_pf_values': uva_pf_values,
-                    'num_replicas': num_replicas
-                }
-                
-                st.session_state.current_results = results
-                
-                # Exibir resultados
                 st.success("✅ Análise concluída com sucesso!")
                 
-                # Tabela de resultados
-                st.subheader("📋 Resultados da Análise")
+                # Resumo dos resultados
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.subheader("📊 Resultados SPF")
+                    st.metric("SPF in vitro (Eq. 1)", f"{results['spf_in_vitro']:.2f}")
+                    st.metric("SPF in vivo", f"{results['spf_in_vivo']:.2f}")
+                    st.metric("SPF ajustado (Eq. 2)", f"{results['spf_ajustado']:.2f}")
+                    st.metric("Coeficiente C", f"{results['C_value']:.4f}")
                 
-                results_data = [
-                    ["SPF in vitro calculado:", f"{spf_in_vitro:.2f}"],
-                    ["SPF in vivo declarado:", f"{spf_in_vivo:.2f}"],
-                    ["Fator de correção (C):", f"{C:.4f}"],
-                    ["SPF ajustado:", f"{spf_ajustado:.2f}"],
-                    ["UVA-PF₀ (inicial):", f"{uva_pf_0:.2f}" if uva_pf_0 > 0 else "N/A"],
-                    ["UVA-PF final:", f"{uva_pf_final:.2f}" if uva_pf_final > 0 else "N/A"],
-                    ["Dose de exposição UVA:", f"{exposure_dose:.2f} J/cm²" if exposure_dose > 0 else "N/A"],
-                    ["Comprimento de onda crítico (λc):", f"{critical_wavelength:.1f} nm"]
-                ]
+                with col2:
+                    st.subheader("🌅 Resultados UVA")
+                    st.metric("UVA-PF₀ (Eq. 3)", f"{results['uva_pf_0']:.2f}")
+                    st.metric("UVA-PF Final (Eq. 5)", f"{results['uva_pf_final']:.2f}")
+                    st.metric("Dose de Exposição (Eq. 4)", f"{results['dose']:.2f} J/cm²")
+                    st.metric("λ Crítico", f"{results['critical_wavelength']:.1f} nm")
                 
-                # Verificar conformidade
-                conformidade_lambda = "✅ CONFORME" if critical_wavelength >= 370 else "❌ NÃO CONFORME"
-                ratio = uva_pf_final / spf_in_vivo if spf_in_vivo > 0 and uva_pf_final > 0 else 0
-                conformidade_ratio = "✅ CONFORME" if ratio >= 0.33 else "❌ NÃO CONFORME"
+                # Gráfico comparativo
+                st.subheader("📊 Comparação dos Fatores de Proteção")
+                fig_comparison = create_protection_factor_chart_iso(results)
+                st.pyplot(fig_comparison)
                 
-                results_data.append(["λc ≥ 370 nm:", conformidade_lambda])
-                results_data.append(["UVA-PF/SPF ≥ 1/3:", conformidade_ratio])
+                # Interpretação dos resultados
+                st.subheader("🔍 Interpretação dos Resultados")
                 
-                # Exibir tabela de resultados
-                for item in results_data:
-                    col1, col2 = st.columns([2, 1])
-                    col1.write(f"**{item[0]}**")
-                    col2.write(item[1])
+                # Verificação do λ crítico
+                if results['critical_wavelength'] >= 370:
+                    st.success("✅ **λ Crítico**: Atende ao requisito mínimo de 370nm (ISO 24443:2011)")
+                else:
+                    st.error("❌ **λ Crítico**: Não atende ao requisito mínimo de 370nm")
                 
-                # Gráfico de fatores de proteção
-                if uva_pf_final > 0:
-                    fig_protection = create_protection_factor_chart_iso(results)
-                    st.pyplot(fig_protection)
+                # Verificação da relação UVA-PF/SPF
+                uva_pf_ratio = results['uva_pf_final'] / results['spf_in_vivo'] if results['spf_in_vivo'] > 0 else 0
+                if uva_pf_ratio >= 0.33:
+                    st.success(f"✅ **Relação UVA-PF/SPF**: {uva_pf_ratio:.3f} (≥ 1/3, atendendo ao requisito da UE)")
+                else:
+                    st.warning(f"⚠️ **Relação UVA-PF/SPF**: {uva_pf_ratio:.3f} (< 1/3, não atendendo ao requisito da UE)")
                 
-                # Análise estatística se múltiplas réplicas
-                if num_replicas > 1 and uva_pf_final > 0:
-                    st.subheader("📊 Análise Estatística")
+                # Relatório PDF
+                st.subheader("📄 Relatório de Análise")
+                pdf_buffer = generate_pdf_report_iso(results)
+                st.download_button(
+                    label="📥 Baixar Relatório PDF (ISO 24443:2011)",
+                    data=pdf_buffer,
+                    file_name=f"relatorio_uva_pf_iso24443_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                    mime="application/pdf"
+                )
+                
+                # Explicação das Fórmulas
+                with st.expander("🧮 Detalhes das Fórmulas Utilizadas - ISO 24443:2011"):
+                    st.markdown("""
+                    ### **Fórmulas ISO 24443:2011**
                     
-                    ci, ci_percent, mean_uva_pf = calculate_confidence_interval(uva_pf_values)
+                    **Eq. 1 - SPF in vitro**: 
+                    `SPF = ∫ E(λ)·I(λ) dλ / ∫ E(λ)·I(λ)·10^(-A0i(λ)) dλ`
                     
-                    st.write(f"**UVA-PF Médio:** {mean_uva_pf:.2f}")
-                    st.write(f"**Desvio Padrão:** {np.std(uva_pf_values, ddof=1):.3f}")
-                    st.write(f"**Coeficiente de Variação:** {np.std(uva_pf_values, ddof=1)/mean_uva_pf*100:.2f}%")
-                    st.write(f"**Intervalo de Confiança (95%):** ± {ci:.3f} (± {ci_percent:.2f}%)")
-                
-                # Seção de relatório PDF
-                st.markdown("---")
-                st.subheader("📊 Relatório de Análise")
-                
-                # Adicionar informações adicionais para o relatório
-                sample_name = st.text_input("Nome da Amostra:", "Amostra Teste")
-                operator = st.text_input("Operador:", "Analista")
-                
-                st.session_state.current_results['sample_name'] = sample_name
-                st.session_state.current_results['operator'] = operator
-                
-                if st.button("📄 Gerar Relatório PDF ISO 24443:2011"):
-                    pdf_buffer = generate_pdf_report_iso(st.session_state.current_results)
-                    st.markdown(get_pdf_download_link(pdf_buffer, f"relatorio_protecao_solar_{sample_name}.pdf"), unsafe_allow_html=True)
-                
-            except Exception as e:
-                st.error(f"Erro durante a análise: {str(e)}")
-                logger.exception("Erro na análise:")
+                    **Eq. 2 - SPF ajustado**: 
+                    `SPF_ajustado = ∫ E(λ)·I(λ) dλ / ∫ E(λ)·I(λ)·10^(-A0i(λ)·C) dλ`
+                    
+                    **Eq. 3 - UVA-PF₀**: 
+                    `UVA-PF₀ = ∫ P(λ)·I(λ) dλ / ∫ P(λ)·I(λ)·10^(-A0i(λ)·C) dλ`
+                    
+                    **Eq. 4 - Dose**: 
+                    `Dose = UVA-PF₀ × 1.2 J/cm²`
+                    
+                    **Eq. 5 - UVA-PF final**: 
+                    `UVA-PF = ∫ P(λ)·I(λ) dλ / ∫ P(λ)·I(λ)·10^(-Ai(λ)·C) dλ`
+                    
+                    **Onde:**
+                    - `E(λ)`: Espectro de ação para eritema (CIE 1987)
+                    - `P(λ)`: Espectro de ação para PPD
+                    - `I(λ)`: Espectro de irradiância
+                    - `A0i(λ)`: Absorbância inicial
+                    - `Ai(λ)`: Absorbância após irradiação
+                    - `C`: Coeficiente de ajuste
+                    """)
+    
+    elif page == "Validação de Dados":
+        st.header("✅ Validação de Dados - ISO 24443:2011")
+        
+        st.info("""
+        Esta seção permite validar seus dados antes da análise completa conforme ISO 24443:2011.
+        Verifique se os arquivos atendem aos requisitos da norma.
+        """)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("📊 Validação de Dados SPF")
+            spf_val_file = st.file_uploader("Dados para validação SPF", type=["csv", "xlsx"], key="val_spf")
+            if spf_val_file:
+                df_val, error = load_and_validate_data_iso(spf_val_file, "pre_irradiation")
+                if error:
+                    st.error(f"❌ {error}")
+                else:
+                    st.success("✅ Dados SPF válidos conforme ISO 24443!")
+                    st.write(f"**Formato:** {len(df_val)} pontos espectrais")
+                    st.write(f"**Faixa espectral:** {df_val['Comprimento de Onda'].min():.0f}-{df_val['Comprimento de Onda'].max():.0f} nm")
+                    
+                    # Verificação de faixa espectral
+                    if df_val['Comprimento de Onda'].min() <= 290 and df_val['Comprimento de Onda'].max() >= 400:
+                        st.success("✅ Faixa espectral completa (290-400nm)")
+                    else:
+                        st.warning("⚠️ Faixa espectral incompleta")
+                    
+                    # Visualização rápida
+                    fig_val = create_absorbance_plot_iso(df_val)
+                    st.pyplot(fig_val)
+        
+        with col2:
+            st.subheader("🌅 Validação de Dados UVA")
+            uva_val_file = st.file_uploader("Dados para validação UVA", type=["csv", "xlsx"], key="val_uva")
+            if uva_val_file:
+                df_val, error = load_and_validate_data_iso(uva_val_file, "post_irradiation")
+                if error:
+                    st.error(f"❌ {error}")
+                else:
+                    is_valid, validation_msg = validate_uva_data_iso(df_val)
+                    if not is_valid:
+                        st.error(f"❌ {validation_msg}")
+                    else:
+                        st.success("✅ Dados UVA válidos conforme ISO 24443!")
+                        st.write(f"**Formato:** {len(df_val)} pontos espectrais")
+                        st.write(f"**Faixa UVA:** {df_val['Comprimento de Onda'].min():.0f}-{df_val['Comprimento de Onda'].max():.0f} nm")
+                        
+                        # Verificar colunas presentes
+                        present_cols = [col for col in ['P(λ)', 'I(λ)', 'Ai(λ)', 'A0i(λ)'] if col in df_val.columns]
+                        st.write(f"**Colunas detectadas:** {', '.join(present_cols)}")
+                        
+                        # Verificação de faixa UVA
+                        if df_val['Comprimento de Onda'].min() <= 320 and df_val['Comprimento de Onda'].max() >= 400:
+                            st.success("✅ Faixa UVA completa (320-400nm)")
+                        else:
+                            st.warning("⚠️ Faixa UVA incompleta")
+    
+    elif page == "Espectros de Referência":
+        st.header("📊 Espectros de Referência - ISO 24443:2011 Anexo C")
+        
+        st.info("""
+        Espectros de referência utilizados nos cálculos conforme Anexo C da ISO 24443:2011.
+        Estes valores são normalizados e utilizados nas equações da norma.
+        """)
+        
+        # Mostrar espectros de referência
+        fig_ref = create_reference_spectra_plot_iso(wavelengths, ppd_spectrum, erythema_spectrum, uva_spectrum)
+        st.pyplot(fig_ref)
+        
+        # Tabela com valores de referência
+        with st.expander("📋 Valores Numéricos dos Espectros de Referência"):
+            ref_df = pd.DataFrame({
+                'Comprimento de Onda (nm)': wavelengths,
+                'PPD (P(λ))': ppd_spectrum,
+                'Eritema CIE (E(λ))': erythema_spectrum,
+                'UV-SSR (I(λ)) W/m²nm': uv_ssr_spectrum,
+                'UVA (I(λ)) W/m²nm': uva_spectrum
+            })
+            st.dataframe(ref_df.head(20))
+            st.write(f"**Total:** {len(ref_df)} pontos de 290-400nm")
+    
+    else:
+        st.header("📋 Sobre a Norma ISO 24443:2011")
+        
+        st.markdown("""
+        ## 📋 Informações sobre a Norma ISO 24443:2011
+        
+        **Cosméticos — Método de ensaio de proteção solar — Determinação in vitro da fotoproteção UVA**
+        
+        ### 🔍 Escopo da Norma:
+        
+        Esta norma especifica um procedimento *in vitro* para caracterizar a proteção UVA de produtos de proteção solar. 
+        O método fornece uma curva de absorbância espectral UV a partir da qual vários parâmetros de proteção UVA podem ser calculados.
+        
+        ### 📊 Principais Parâmetros Avaliados:
+        
+        - **UVA-PF**: Fator de Proteção UVA (correlaciona com *in vivo* PPD)
+        - **λ Crítico**: Comprimento de onda abaixo do qual 90% da absorbância total é obtida
+        - **Proporcionalidade de absorbância UVA**
+        
+        ### ⚠️ Limitações:
+        
+        - Não aplicável a produtos em pó
+        - Baseia-se em resultados SPF *in vivo* para escalonamento
+        - Não é um método totalmente *in vitro*
+        
+        ### 🧪 Requisitos do Método:
+        
+        - **Placa substrato**: PMMA com superfície rugosa
+        - **Densidade de aplicação**: 1.3 mg/cm²
+        - **Faixa espectral**: 290-400 nm
+        - **Temperatura**: 25-35°C
+        - **Dose de exposição**: UVA-PF₀ × 1.2 J/cm²
+        
+        ### ✅ Critérios de Aceitação:
+        
+        - **λ Crítico** deve ser ≥ 370 nm
+        - **Referência S2**: UVA-PF entre 10.7-14.7
+        - **Coeficiente C**: 0.8-1.6
+        
+        ### 📈 Espectros de Referência (Anexo C):
+        
+        - **E(λ)**: Espectro de ação para eritema (CIE 1987)
+        - **P(λ)**: Espectro de ação para PPD (Persistent Pigment Darkening)
+        - **I(λ)**: Espectro de irradiância solar
+        
+        ### 🔬 Equipamentos Requeridos:
+        
+        - Espectrofotômetro UV (290-400 nm, incremento de 1 nm)
+        - Fonte de exposição UV com espectro definido
+        - Placas PMMA qualificadas
+        - Sistema de controle de temperatura
+        """)
+        
+        # Referências
+        with st.expander("📚 Referências Normativas"):
+            st.markdown("""
+            - **ISO 17025**: Requisitos gerais para competência de laboratórios
+            - **CIE S007/ISO 17166**: Espectro de ação para eritema
+            - **COLIPA (1994)**: Método de ensaio SPF
+            - **DIN 67501**: Avaliação de produtos de proteção solar
+            """)
 
 if __name__ == "__main__":
     main()
