@@ -505,7 +505,7 @@ def create_protection_factor_chart_iso(results):
     plt.xticks(rotation=45, ha='right')
     ax.grid(True, alpha=0.3, axis='y')
     
-    plt极.tight_layout()
+    plt.tight_layout()
     return fig
 
 # GERAÇÃO DE RELATÓRIO PDF CONFORME ISO
