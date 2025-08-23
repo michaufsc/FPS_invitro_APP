@@ -648,7 +648,7 @@ def main():
                     
                     # Cálculo do coeficiente C
                     def error_function(C):
-                        return abs(calculate_adjusted_spf_iso(df_sp极 f, C, erythema_spectrum, uv_ssr_spectrum) - SPF_in_vivo)
+                        return abs(calculate_adjusted_spf_iso(df_spf, C, erythema_spectrum, uv_ssr_spectrum) - SPF_in_vivo)
                     
                     result = opt.minimize_scalar(error_function, bounds=(0.5, 1.6), method='bounded')
                     C_value = result.x
