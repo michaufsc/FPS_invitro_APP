@@ -55,7 +55,39 @@ def load_reference_spectra():
         0.0010
     ])
     
-    return wavelengths, ppd_spectrum, erythema_spectrum
+    # Espectro de irradiância UV-SSR (Tabela C.1)
+    uv_ssr_spectrum = np.array([
+        8.741E-06, 1.450E-05, 2.659E-05, 4.574E-05, 1.006E-04, 2.589E-04, 7.035E-04, 1.678E-03, 3.727E-03, 7.938E-03,
+        1.478E-02, 2.514E-02, 4.176E-02, 6.223E-02, 8.690E-02, 1.216E-01, 1.615E-01, 1.989E-01, 2.483E-01, 2.894E-01,
+        3.358E-01, 3.872E-01, 4.311E-01, 4.884E-01, 5.121E-01, 5.567E-01, 5.957E-01, 6.256E-01, 6.565E-01, 6.879E-01,
+        7.236E-01, 7.371E-01, 7.677E-01, 7.955E-01, 7.987E-01, 8.290E-01, 8.435E-01, 8.559E-01, 8.791E-01, 8.951E-01,
+        9.010E-01, 9.161E-01, 9.434E-01, 9.444E-01, 9.432E-01, 9.571E-01, 9.663E-01, 9.771E-01, 9.770E-01, 9.967E-01,
+        9.939E-01, 1.007E+00, 1.012E+00, 1.011E+00, 1.021E+00, 1.025E+00, 1.033E+00, 1.034E+00, 1.040E+00, 1.027E+00,
+        1.045E+00, 1.042E+00, 1.040E+00, 1.039E+00, 1.043E+00, 1.046E+00, 1.035E+00, 1.039E+00, 1.027E+00, 1.035E+00,
+        1.037E+00, 1.025E+00, 1.023E+00, 1.016E+00, 9.984E-01, 9.960E-01, 9.674E-01, 9.648E-01, 9.389E-01, 9.191E-01,
+        8.977E-01, 8.725E-01, 8.473E-01, 8.123E-01, 7.840E-01, 7.416E-01, 7.148E-01, 6.687E-01, 6.280E-01, 5.863E-01,
+        5.341E-01, 4.925E-01, 4.482E-01, 3.932E-01, 3.428E-01, 2.985E-01, 2.567E-01, 2.148E-01, 1.800E-01, 1.486E-01,
+        1.193E-01, 9.403E-02, 7.273E-02, 5.532E-02, 4.010E-02, 2.885E-02, 2.068E-02, 1.400E-02, 9.510E-03, 6.194E-03,
+        4.172E-03
+    ])
+    
+    # Espectro de irradiância UVA (Tabela C.1)
+    uva_spectrum = np.array([
+        0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
+        0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
+        0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
+        4.843E-06, 8.466E-06, 1.356E-05, 2.074E-05, 3.032E-05, 4.294E-05, 5.738E-05, 7.601E-05, 9.845E-05, 1.215E-04,
+        1.506E-04, 1.811E-04, 2.132E-04, 2.444E-04, 2.833E-04, 3.186E-04, 3.589E-04, 3.980E-04, 4.387E-04, 4.778E-04,
+        5.198E-04, 5.608E-04, 5.998E-04, 6.384E-04, 6.739E-04, 7.123E-04, 7.468E-04, 7.784E-04, 8.180E-04, 8.427E-04,
+        8.754E-04, 9.044E-04, 9.288E-04, 9.486E-04, 9.733E-04, 9.863E-04, 1.009E-03, 1.028E-03, 1.045E-03, 1.062E-03,
+        1.078E-03, 1.086E-03, 1.098E-03, 1.095E-03, 1.100E-03, 1.100E-03, 1.093E-03, 1.087E-03, 1.082E-03, 1.071E-03,
+        1.048E-03, 1.026E-03, 9.953E-04, 9.703E-04, 9.367E-04, 9.057E-04, 8.757E-04, 8.428E-04, 8.058E-04, 7.613E-04,
+        7.105E-04, 6.655E-04, 6.115E-04, 5.561E-04, 4.990E-04, 4.434E-04, 3.876E-04, 3.363E-04, 2.868E-04, 2.408E-04,
+        2.012E-04, 1.640E-04, 1.311E-04, 1.028E-04, 7.897E-05, 5.975E-05, 4.455E-05, 3.259E-05, 2.302E-05, 1.581E-05,
+        1.045E-05
+    ])
+    
+    return wavelengths, ppd_spectrum, erythema_spectrum, uv_ssr_spectrum, uva_spectrum
 
 # Sistema de sessão
 if 'uploaded_data' not in st.session_state:
@@ -67,7 +99,7 @@ if 'current_results' not in st.session_state:
 
 # FUNÇÕES DE CÁLCULO - ISO 24443:2011
 # =============================================================================
-def calculate_spf_in_vitro(df, erythema_spectrum):
+def calculate_spf_in_vitro(df, erythema_spectrum, uv_ssr_spectrum):
     """Eq. 1: SPF in vitro inicial"""
     d_lambda = 1
     total_numerator = 0
@@ -80,7 +112,7 @@ def calculate_spf_in_vitro(df, erythema_spectrum):
         
         idx = wavelength - 290
         E = erythema_spectrum[idx]
-        I = row['I(λ)'] if 'I(λ)' in row else 1.0
+        I = uv_ssr_spectrum[idx]
         A0 = row['A0i(λ)']
         T = 10 ** (-A0)
         
@@ -89,7 +121,7 @@ def calculate_spf_in_vitro(df, erythema_spectrum):
     
     return total_numerator / total_denominator if total_denominator != 0 else 0
 
-def calculate_adjusted_spf(df, C, erythema_spectrum):
+def calculate_adjusted_spf(df, C, erythema_spectrum, uv_ssr_spectrum):
     """Eq. 2: SPF ajustado com coeficiente C"""
     d_lambda = 1
     total_numerator = 0
@@ -102,7 +134,7 @@ def calculate_adjusted_spf(df, C, erythema_spectrum):
         
         idx = wavelength - 290
         E = erythema_spectrum[idx]
-        I = row['I(λ)'] if 'I(λ)' in row else 1.0
+        I = uv_ssr_spectrum[idx]
         A0 = row['A0i(λ)']
         T_adjusted = 10 ** (-A0 * C)
         
@@ -111,7 +143,7 @@ def calculate_adjusted_spf(df, C, erythema_spectrum):
     
     return total_numerator / total_denominator if total_denominator != 0 else 0
 
-def calculate_uva_pf_initial(df, C, ppd_spectrum):
+def calculate_uva_pf_initial(df, C, ppd_spectrum, uva_spectrum):
     """Eq. 3: UVA-PF₀ inicial"""
     d_lambda = 1
     total_numerator = 0
@@ -124,7 +156,7 @@ def calculate_uva_pf_initial(df, C, ppd_spectrum):
         
         idx = wavelength - 290
         P = ppd_spectrum[idx]
-        I = row['I(λ)']
+        I = uva_spectrum[idx]
         A0 = row['A0i(λ)']
         T_adjusted = 10 ** (-A0 * C)
         
@@ -133,7 +165,7 @@ def calculate_uva_pf_initial(df, C, ppd_spectrum):
     
     return total_numerator / total_denominator if total_denominator != 0 else 0
 
-def calculate_uva_pf_final(df, ppd_spectrum):
+def calculate_uva_pf_final(df, C, ppd_spectrum, uva_spectrum):
     """Eq. 5: UVA-PF final após irradiação"""
     d_lambda = 1
     total_numerator = 0
@@ -146,9 +178,9 @@ def calculate_uva_pf_final(df, ppd_spectrum):
         
         idx = wavelength - 290
         P = ppd_spectrum[idx]
-        I = row['I(λ)']
+        I = uva_spectrum[idx]
         Ae = row['Ai(λ)']
-        T_final = 10 ** (-Ae)
+        T_final = 10 ** (-Ae * C)
         
         total_numerator += P * I * d_lambda
         total_denominator += P * I * T_final * d_lambda
@@ -319,7 +351,7 @@ def validate_uva_data(df):
 # =============================================================================
 st.title("Análise de Proteção Solar - ISO 24443:2011")
 
-wavelengths, ppd_spectrum, erythema_spectrum = load_reference_spectra()
+wavelengths, ppd_spectrum, erythema_spectrum, uv_ssr_spectrum, uva_spectrum = load_reference_spectra()
 
 # Menu lateral
 with st.sidebar:
@@ -358,18 +390,18 @@ if page == "ISO 24443 Completo":
                 st.dataframe(df_spf.head())
                 
                 try:
-                    spf_in_vitro = calculate_spf_in_vitro(df_spf, erythema_spectrum)
+                    spf_in_vitro = calculate_spf_in_vitro(df_spf, erythema_spectrum, uv_ssr_spectrum)
                     st.metric("SPF in vitro (Eq. 1)", f"{spf_in_vitro:.2f}")
                     
                     SPF_in_vivo = st.number_input("SPF in vivo medido:", 
                                                min_value=1.0, value=30.0, step=0.1)
                     
                     def error_function(C):
-                        return abs(calculate_adjusted_spf(df_spf, C, erythema_spectrum) - SPF_in_vivo)
+                        return abs(calculate_adjusted_spf(df_spf, C, erythema_spectrum, uv_ssr_spectrum) - SPF_in_vivo)
                     
                     result = opt.minimize_scalar(error_function, bounds=(0.5, 1.6), method='bounded')
                     C_value = result.x
-                    spf_ajustado = calculate_adjusted_spf(df_spf, C_value, erythema_spectrum)
+                    spf_ajustado = calculate_adjusted_spf(df_spf, C_value, erythema_spectrum, uv_ssr_spectrum)
                     
                     col1, col2 = st.columns(2)
                     with col1:
@@ -425,9 +457,9 @@ if page == "ISO 24443 Completo":
                         st.dataframe(df_uva.head())
                         
                         try:
-                            uva_pf_0 = calculate_uva_pf_initial(df_uva, C_value, ppd_spectrum)
+                            uva_pf_0 = calculate_uva_pf_initial(df_uva, C_value, ppd_spectrum, uva_spectrum)
                             dose = calculate_exposure_dose(uva_pf_0)
-                            uva_pf_final = calculate_uva_pf_final(df_uva, ppd_spectrum)
+                            uva_pf_final = calculate_uva_pf_final(df_uva, C_value, ppd_spectrum, uva_spectrum)
                             critical_wl = calculate_critical_wavelength(df_uva, C_value)
                             
                             col1, col2, col3, col4 = st.columns(4)
@@ -588,13 +620,17 @@ elif page == "Validação de Dados":
         sample_data = {
             'λ (nm)': sample_wavelengths,
             'P(λ) PPD': [ppd_spectrum[w-290] for w in sample_wavelengths],
-            'E(λ) Eritema': [erythema_spectrum[w-290] for w in sample_wavelengths]
+            'E(λ) Eritema': [erythema_spectrum[w-290] for w in sample_wavelengths],
+            'I(λ) UV-SSR (W/m²nm)': [uv_ssr_spectrum[w-290] for w in sample_wavelengths],
+            'I(λ) UVA (W/m²nm)': [uva_spectrum[w-290] for w in sample_wavelengths]
         }
         
         ref_df = pd.DataFrame(sample_data)
         st.dataframe(ref_df.style.format({
             'P(λ) PPD': '{:.4f}',
-            'E(λ) Eritema': '{:.6f}'
+            'E(λ) Eritema': '{:.6f}',
+            'I(λ) UV-SSR (W/m²nm)': '{:.3e}',
+            'I(λ) UVA (W/m²nm)': '{:.3e}'
         }))
         
         fig, ax = plt.subplots(figsize=(10, 6))
