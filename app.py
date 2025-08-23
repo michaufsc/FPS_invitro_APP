@@ -338,7 +338,7 @@ def load_and_validate_data_iso(uploaded_file, data_type="pre_irradiation"):
                     used_mappings.add('Comprimento de Onda')
             elif any(x in col_lower for x in ['p(', 'p (', 'ppd', 'pigment']):
                 if 'P(λ)' not in used_mappings:
-                    column_mapping[极 col] = 'P(λ)'
+                    column_mapping[col] = 'P(λ)'
                     used_mappings.add('P(λ)')
             elif any(x in col_lower for x in ['i(', 'i (', 'intensidade', 'irradiancia', 'irradiance']):
                 if 'I(λ)' not in used_mappings:
