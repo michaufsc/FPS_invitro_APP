@@ -461,7 +461,7 @@ def create_reference_spectra_plot_iso(wavelengths, ppd_spectrum, erythema_spectr
             linewidth=2, color='#9467bd', alpha=0.8)
     
     # Melhorar a aparência do gráfico
-    ax.set_xlabel('Comprimento de Onda (nm)', fontsize极, 12, fontweight='bold')
+    ax.set_xlabel('Comprimento de Onda (nm)', fontsize, 12, fontweight='bold')
     ax.set_ylabel('Valor Normalizado', fontsize=12, fontweight='bold')
     ax.set_title('Espectros de Referência - ISO 24443:2011 Anexo C', fontsize=14, fontweight='bold')
     ax.legend(loc='upper right', frameon=True, shadow=True)
@@ -536,7 +536,7 @@ def generate_pdf_report_iso(results):
         ("UVA-PF Final (Eq. 5)", f"{results.get('uva_pf_final', 0):.2f}"),
         ("Dose de Exposição (Eq. 4)", f"{results.get('dose', 0):.2f} J/cm²"),
         ("λ Crítico", f"{results.get('critical_wavelength', 0):.1f} nm"),
-        ("Coeficiente C", f"{results.get('C_value', 0):.极 4f}"),
+        ("Coeficiente C", f"{results.get('C_value', 0):.4f}"),
         ("SPF in vitro (Eq. 1)", f"{results.get('spf_in_vitro', 0):.2f}"),
         ("SPF in vivo", f"{results.get('spf_in_vivo', 0):.2f}")
     ]:
@@ -884,7 +884,7 @@ def main():
                     st.write(f"**Faixa espectral:** {df_val['Comprimento de Onda'].min():.0f}-{df_val['Comprimento de Onda'].max():.0f} nm")
                     
                     # Verificação de faixa espectral
-                    if df_val['Comprimento de Onda'].min() <= 290 and df_val['极 Comprimento de Onda'].max() >= 400:
+                    if df_val['Comprimento de Onda'].min() <= 290 and df_val['Comprimento de Onda'].max() >= 400:
                         st.success("✅ Faixa espectral completa (290-400nm)")
                     else:
                         st.warning("⚠️ Faixa espectral incompleta")
