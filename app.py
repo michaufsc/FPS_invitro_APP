@@ -99,6 +99,13 @@ if 'current_results' not in st.session_state:
 
 # FUNÇÕES DE CÁLCULO - ISO 24443:2011
 # =============================================================================
+def get_spectrum_value(wavelength, spectrum_array, min_wavelength=290):
+    """Obtém valor do espectro de referência de forma segura"""
+    idx = wavelength - min_wavelength
+    if 0 <= idx < len(spectrum_array):
+        return spectrum_array[idx]
+    return 0.0  # Retorna 0 se estiver fora da faixa
+
 def calculate_spf_in_vitro(df, erythema_spectrum, uv_ssr_spectrum):
     """Eq. 1: SPF in vitro inicial"""
     d_lambda = 1
@@ -110,9 +117,8 @@ def calculate_spf_in_vitro(df, erythema_spectrum, uv_ssr_spectrum):
         if wavelength < 290 or wavelength > 400:
             continue
         
-        idx = wavelength - 290
-        E = erythema_spectrum[idx]
-        I = uv_ssr_spectrum[idx]
+        E = get_spectrum_value(wavelength, erythema_spectrum)
+        I = get_spectrum_value(wavelength, uv_ssr_spectrum)
         A0 = row['A0i(λ)']
         T = 10 ** (-A0)
         
@@ -132,9 +138,8 @@ def calculate_adjusted_spf(df, C, erythema_spectrum, uv_ssr_spectrum):
         if wavelength < 290 or wavelength > 400:
             continue
         
-        idx = wavelength - 290
-        E = erythema_spectrum[idx]
-        I = uv_ssr_spectrum[idx]
+        E = get_spectrum_value(wavelength, erythema_spectrum)
+        I = get_spectrum_value(wavelength, uv_ssr_spectrum)
         A0 = row['A0i(λ)']
         T_adjusted = 10 ** (-A0 * C)
         
@@ -154,9 +159,8 @@ def calculate_uva_pf_initial(df, C, ppd_spectrum, uva_spectrum):
         if wavelength < 320 or wavelength > 400:
             continue
         
-        idx = wavelength - 290
-        P = ppd_spectrum[idx]
-        I = uva_spectrum[idx]
+        P = get_spectrum_value(wavelength, ppd_spectrum)
+        I = get_spectrum_value(wavelength, uva_spectrum)
         A0 = row['A0i(λ)']
         T_adjusted = 10 ** (-A0 * C)
         
@@ -176,9 +180,8 @@ def calculate_uva_pf_final(df, C, ppd_spectrum, uva_spectrum):
         if wavelength < 320 or wavelength > 400:
             continue
         
-        idx = wavelength - 290
-        P = ppd_spectrum[idx]
-        I = uva_spectrum[idx]
+        P = get_spectrum_value(wavelength, ppd_spectrum)
+        I = get_spectrum_value(wavelength, uva_spectrum)
         Ae = row['Ai(λ)']
         T_final = 10 ** (-Ae * C)
         
@@ -194,6 +197,9 @@ def calculate_exposure_dose(uva_pf_0):
 def calculate_critical_wavelength(df, C):
     """Calcula Critical Wavelength com absorbância ajustada"""
     df_uv = df[(df['Comprimento de Onda'] >= 290) & (df['Comprimento de Onda'] <= 400)].copy()
+    
+    if len(df_uv) == 0:
+        return 400  # Valor padrão se não houver dados
     
     wavelengths = df_uv['Comprimento de Onda'].to_numpy()
     absorbance = df_uv['A0i(λ)'].to_numpy() * C
@@ -327,6 +333,12 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
         df = df.dropna()
         df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
         
+        # Garantir que os dados estão na faixa correta
+        df = df[(df['Comprimento de Onda'] >= 290) & (df['Comprimento de Onda'] <= 400)]
+        
+        if len(df) == 0:
+            return None, "Nenhum dado válido na faixa de 290-400nm"
+        
         st.success(f"Dados carregados com sucesso! {len(df)} linhas válidas.")
         return df, None
         
@@ -364,6 +376,7 @@ with st.sidebar:
     **Formatos esperados:**
     - **SPF:** Comprimento de Onda, A0i(λ)
     - **UVA:** Comprimento de Onda, P(λ), I(λ), Ai(λ), A0i(λ)
+    - **Faixa:** 290-400nm para SPF, 320-400nm para UVA
     """)
     
     st.markdown("---")
@@ -568,7 +581,7 @@ if page == "ISO 24443 Completo":
                 st.success(f"Resultados salvos com ID: {timestamp}")
 
 # PÁGINA 2: VALIDAÇÃO DE DADOS
-elif page == "Validação de Dados":
+elif page == "Validação de DADOS":
     st.header("Validação de Dados e Espectros")
     
     tab1, tab2 = st.tabs(["Validação UVA", "Espectros de Referência"])
@@ -619,10 +632,10 @@ elif page == "Validação de Dados":
         sample_wavelengths = [290, 300, 310, 320, 330, 340, 350, 360, 370, 380, 390, 400]
         sample_data = {
             'λ (nm)': sample_wavelengths,
-            'P(λ) PPD': [ppd_spectrum[w-290] for w in sample_wavelengths],
-            'E(λ) Eritema': [erythema_spectrum[w-290] for w in sample_wavelengths],
-            'I(λ) UV-SSR (W/m²nm)': [uv_ssr_spectrum[w-290] for w in sample_wavelengths],
-            'I(λ) UVA (W/m²nm)': [uva_spectrum[w-290] for w in sample_wavelengths]
+            'P(λ) PPD': [get_spectrum_value(w, ppd_spectrum) for w in sample_wavelengths],
+            'E(λ) Eritema': [get_spectrum_value(w, erythema_spectrum) for w in sample_wavelengths],
+            'I(λ) UV-SSR (W/m²nm)': [get_spectrum_value(w, uv_ssr_spectrum) for w in sample_wavelengths],
+            'I(λ) UVA (W/m²nm)': [get_spectrum_value(w, uva_spectrum) for w in sample_wavelengths]
         }
         
         ref_df = pd.DataFrame(sample_data)
