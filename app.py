@@ -24,7 +24,7 @@ def load_reference_spectra():
     """Carrega os espectros de referência COMPLETOS da Annex C da norma ISO"""
     wavelengths = np.arange(290, 401)
     
-    # Espectro de ação PPD (Tabela C.1 completa)
+    # Espectro de ação PPD (Tabela C.1)
     ppd_spectrum = np.array([
         0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,  # 290-299
         0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,  # 300-309
@@ -40,7 +40,7 @@ def load_reference_spectra():
         0.140  # 400
     ])
     
-    # Espectro de eritema CIE 1987 (Tabela C.1 completa)
+    # Espectro de eritema CIE 1987 (Tabela C.1)
     erythema_spectrum = np.array([
         1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 0.8054,  # 290-299
         0.6486, 0.5224, 0.4207, 0.3388, 0.2729, 0.2198, 0.1770, 0.1426, 0.1148, 0.0925,  # 300-309
@@ -49,7 +49,7 @@ def load_reference_spectra():
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 330-339
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 340-349
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 350-359
-        0.0010, 极.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 360-369
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 360-369
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 370-379
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 380-389
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,  # 390-399
@@ -66,25 +66,24 @@ if 'analysis_history' not in st.session_state:
 if 'current_results' not in st.session_state:
     st.session_state.current_results = {}
 
-# FUNÇÕES DE CÁLCULO - ISO 24443:2011 CORRIGIDAS
+# FUNÇÕES DE CÁLCULO - ISO 24443:2011
 # =============================================================================
 def calculate_spf_in_vitro(df, erythema_spectrum):
-    """Eq. 1: SPF in vitro inicial - ISO 24443:2011 CORRIGIDA"""
+    """Eq. 1: SPF in vitro inicial"""
     d_lambda = 1
-    total_numerator = 0    # SEM proteção (∫ E·I dλ)
-    total_denominator = 0  # COM proteção (∫ E·I·T dλ)
+    total_numerator = 0
+    total_denominator = 0
     
     for _, row in df.iterrows():
         wavelength = int(row['Comprimento de Onda'])
         if wavelength < 290 or wavelength > 400:
             continue
         
-        # Obter valor do espectro de referência
         idx = wavelength - 290
         E = erythema_spectrum[idx]
-        I = row['I(λ)'] if 'I(λ)' in row else 1.0  # Usar I(λ) do arquivo ou padrão
+        I = row['I(λ)'] if 'I(λ)' in row else 1.0
         A0 = row['A0i(λ)']
-        T = 10 ** (-A0)  # Transmitância
+        T = 10 ** (-A0)
         
         total_numerator += E * I * d_lambda
         total_denominator += E * I * T * d_lambda
@@ -92,10 +91,10 @@ def calculate_spf_in_vitro(df, erythema_spectrum):
     return total_numerator / total_denominator if total_denominator != 0 else 0
 
 def calculate_adjusted_spf(df, C, erythema_spectrum):
-    """Eq. 2: SPF ajustado com coeficiente C - ISO 24443:2011 CORRIGIDA"""
+    """Eq. 2: SPF ajustado com coeficiente C"""
     d_lambda = 1
-    total_numerator = 0    # SEM proteção (∫ E·I dλ)
-    total_denominator = 0  # COM proteção (∫ E·I·T dλ)
+    total_numerator = 0
+    total_denominator = 0
     
     for _, row in df.iterrows():
         wavelength = int(row['Comprimento de Onda'])
@@ -104,9 +103,9 @@ def calculate_adjusted_spf(df, C, erythema_spectrum):
         
         idx = wavelength - 290
         E = erythema_spectrum[idx]
-        I = row['I(λ)'] if 'I(λ)' in row else 1.0  # Usar I(λ) do arquivo ou padrão
+        I = row['I(λ)'] if 'I(λ)' in row else 1.0
         A0 = row['A0i(λ)']
-        T_adjusted = 10 ** (-A0 * C)  # Transmitância ajustada
+        T_adjusted = 10 ** (-A0 * C)
         
         total_numerator += E * I * d_lambda
         total_denominator += E * I * T_adjusted * d_lambda
@@ -114,10 +113,10 @@ def calculate_adjusted_spf(df, C, erythema_spectrum):
     return total_numerator / total_denominator if total_denominator != 0 else 0
 
 def calculate_uva_pf_initial(df, C, ppd_spectrum):
-    """Eq. 3: UVA-PF₀ inicial - ISO 24443:2011 CORRIGIDA"""
+    """Eq. 3: UVA-PF₀ inicial"""
     d_lambda = 1
-    total_numerator = 0    # SEM proteção (∫ P·I dλ)
-    total_denominator = 0  # COM proteção (∫ P·I·T dλ)
+    total_numerator = 0
+    total_denominator = 0
     
     for _, row in df.iterrows():
         wavelength = int(row['Comprimento de Onda'])
@@ -126,9 +125,9 @@ def calculate_uva_pf_initial(df, C, ppd_spectrum):
         
         idx = wavelength - 290
         P = ppd_spectrum[idx]
-        I = row['I(λ)']  # Usar I(λ) do arquivo
+        I = row['I(λ)']
         A0 = row['A0i(λ)']
-        T_adjusted = 10 ** (-A0 * C)  # Transmitância ajustada
+        T_adjusted = 10 ** (-A0 * C)
         
         total_numerator += P * I * d_lambda
         total_denominator += P * I * T_adjusted * d_lambda
@@ -136,10 +135,10 @@ def calculate_uva_pf_initial(df, C, ppd_spectrum):
     return total_numerator / total_denominator if total_denominator != 0 else 0
 
 def calculate_uva_pf_final(df, ppd_spectrum):
-    """Eq. 5: UVA-PF final após irradiação - ISO 24443:2011 CORRIGIDA"""
+    """Eq. 5: UVA-PF final após irradiação"""
     d_lambda = 1
-    total_numerator = 0    # SEM proteção (∫ P·I dλ)
-    total_denominator = 0  # COM proteção (∫ P·I·T dλ)
+    total_numerator = 0
+    total_denominator = 0
     
     for _, row in df.iterrows():
         wavelength = int(row['Comprimento de Onda'])
@@ -148,9 +147,9 @@ def calculate_uva_pf_final(df, ppd_spectrum):
         
         idx = wavelength - 290
         P = ppd_spectrum[idx]
-        I = row['I(λ)']  # Usar I(λ) do arquivo
-        Ae = row['Ai(λ)']  # Absorbância APÓS irradiação
-        T_final = 10 ** (-Ae)  # Transmitância final
+        I = row['I(λ)']
+        Ae = row['Ai(λ)']
+        T_final = 10 ** (-Ae)
         
         total_numerator += P * I * d_lambda
         total_denominator += P * I * T_final * d_lambda
@@ -158,13 +157,12 @@ def calculate_uva_pf_final(df, ppd_spectrum):
     return total_numerator / total_denominator if total_denominator != 0 else 0
 
 def calculate_exposure_dose(uva_pf_0):
-    """Eq. 4: Dose de exposição - ISO 24443:2011"""
-    return uva_pf_0 * 1.2  # J/cm²
+    """Eq. 4: Dose de exposição"""
+    return uva_pf_0 * 1.2
 
 def calculate_critical_wavelength(df, C):
     """Calcula Critical Wavelength com absorbância ajustada"""
-    df_uv = df[(df['Comprimento de Onda'] >= 290) & 
-              (df['Comprimento de Onda'] <= 400)].copy()
+    df_uv = df[(df['Comprimento de Onda'] >= 290) & (df['Comprimento de Onda'] <= 400)].copy()
     
     wavelengths = df_uv['Comprimento de Onda'].to_numpy()
     absorbance = df_uv['A0i(λ)'].to_numpy() * C
@@ -185,7 +183,7 @@ def calculate_critical_wavelength(df, C):
     
     return critical_wl
 
-# FUNÇÕES AUXILIARES CORRIGIDAS
+# FUNÇÕES AUXILIARES
 # =============================================================================
 def detect_encoding(uploaded_file):
     """Detecta o encoding do arquivo"""
@@ -197,41 +195,33 @@ def detect_encoding(uploaded_file):
 def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
     """Carrega e valida dados com suporte para diferentes formatos"""
     try:
-        # Tentar detectar automaticamente o formato
         if uploaded_file.name.endswith('.xlsx') or uploaded_file.name.endswith('.xls'):
             df = pd.read_excel(uploaded_file)
         else:
-            # Tentar ler como CSV com diferentes opções
             encoding = detect_encoding(uploaded_file)
             
             try:
-                # Primeira tentativa: ler com separador ; e decimal ,
                 df = pd.read_csv(uploaded_file, sep=';', decimal=',', encoding=encoding)
                 st.success("✅ Arquivo lido com separador ; e decimal ,")
             except:
                 try:
-                    # Segunda tentativa: ler com separador , e decimal .
                     uploaded_file.seek(0)
                     df = pd.read_csv(uploaded_file, sep=',', decimal='.', encoding=encoding)
                     st.success("✅ Arquivo lido com separador , e decimal .")
                 except:
-                    # Terceira tentativa: ler automaticamente
                     uploaded_file.seek(0)
                     df = pd.read_csv(uploaded_file, encoding=encoding)
                     st.success("✅ Arquivo lido com configuração automática")
         
         st.write("🔍 **Colunas originais detectadas:**", list(df.columns))
         
-        # Limpar nomes de colunas
         df.columns = [str(col).strip() for col in df.columns]
         
-        # Mapeamento para nomes em português - CORRIGIDO
         column_mapping = {}
         used_mappings = set()
         
         for col in df.columns:
             col_lower = col.lower()
-            original_col = col
             
             if any(x in col_lower for x in ['comprimento', 'onda', 'wavelength', 'lambda', 'nm', 'wl']):
                 if 'Comprimento de Onda' not in used_mappings:
@@ -239,7 +229,7 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
                     used_mappings.add('Comprimento de Onda')
             elif any(x in col_lower for x in ['p(', 'p (', 'ppd', 'pigment']):
                 if 'P(λ)' not in used_mappings:
-                    column_mapping[col] = 'P(λ)'
+                    column_mapping[极] = 'P(λ)'
                     used_mappings.add('P(λ)')
             elif any(x in col_lower for x in ['i(', 'i (', 'intensidade', 'irradiancia', 'irradiance']):
                 if 'I(λ)' not in used_mappings:
@@ -261,11 +251,9 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
                     column_mapping[col] = 'E(λ)'
                     used_mappings.add('E(λ)')
         
-        # Aplicar mapeamento
         df = df.rename(columns=column_mapping)
         st.write("🔄 **Colunas após mapeamento:**", list(df.columns))
         
-        # Verificar colunas obrigatórias
         if data_type == "pre_irradiation":
             required = ['Comprimento de Onda', 'A0i(λ)']
         else:
@@ -276,7 +264,6 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
         if missing:
             st.warning(f"⚠️ Colunas faltando: {missing}")
             
-            # Mapeamento manual
             st.subheader("🔧 Mapeamento Manual de Colunas")
             manual_mapping = {}
             
@@ -295,26 +282,18 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
                 st.success("Mapeamento aplicado!")
                 st.rerun()
         
-        # Verificação final
         missing_final = [col for col in required if col not in df.columns]
         if missing_final:
             return None, f"Colunas obrigatórias faltando: {missing_final}"
         
-        # Converter Comprimento de Onda para numérico
         df['Comprimento de Onda'] = pd.to_numeric(df['Comprimento de Onda'], errors='coerce')
-        
-        # Remover linhas com NaN
         df = df.dropna(subset=['Comprimento de Onda'])
         
-        # Converter outras colunas para numérico
         for col in df.columns:
             if col != 'Comprimento de Onda':
                 df[col] = pd.to_numeric(df[col], errors='coerce')
         
-        # Remover linhas com valores NaN
         df = df.dropna()
-        
-        # Remover colunas vazias
         df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
         
         st.success(f"✅ Dados carregados com sucesso! {len(df)} linhas válidas.")
@@ -331,7 +310,6 @@ def validate_uva_data(df):
     if missing_cols:
         return False, f"Colunas UVA faltando: {', '.join(missing_cols)}"
     
-    # Verificar faixa de wavelengths
     wavelengths = df['Comprimento de Onda'].values
     if min(wavelengths) > 320 or max(wavelengths) < 400:
         return False, "Faixa de wavelength UVA incompleta (320-400nm requerido)"
@@ -342,7 +320,6 @@ def validate_uva_data(df):
 # =============================================================================
 st.title("🌞 Análise de Proteção Solar - ISO 24443:2011")
 
-# Carregar espectros de referência
 wavelengths, ppd_spectrum, erythema_spectrum = load_reference_spectra()
 
 # Menu lateral
@@ -354,12 +331,8 @@ with st.sidebar:
     st.markdown("---")
     st.info("""
     **📋 Formatos esperados:**
-    - **SPF:** Comprimento de Onda, E(λ), I(λ), A0i(λ)
+    - **SPF:** Comprimento de Onda, A0i(λ)
     - **UVA:** Comprimento de Onda, P(λ), I(λ), Ai(λ), A0i(λ)
-    
-    **🔧 Para seus arquivos:**
-    - Mapeie manualmente se necessário
-    - Ignore colunas "Unnamed" (são colunas vazias)
     """)
     
     st.markdown("---")
@@ -386,7 +359,7 @@ if page == "ISO 24443 Completo":
                 st.dataframe(df_spf.head())
                 
                 try:
-                    spf_in_vitro = calculate_spf_in_vitro(df_spf, erythema_spectrum)
+                    spf_in_vitro = calculate_spf_in_vitro(df_sp极, erythema_spectrum)
                     st.metric("SPF in vitro (Eq. 1)", f"{spf_in_vitro:.2f}")
                     
                     SPF_in_vivo = st.number_input("SPF in vivo medido:", 
@@ -445,7 +418,6 @@ if page == "ISO 24443 Completo":
                 if error:
                     st.error(f"❌ {error}")
                 else:
-                    # Validação específica para dados UVA
                     is_valid, validation_msg = validate_uva_data(df_uva)
                     if not is_valid:
                         st.error(f"❌ {validation_msg}")
@@ -470,7 +442,6 @@ if page == "ISO 24443 Completo":
                                 status = "✅" if critical_wl >= 370 else "⚠️"
                                 st.metric("λ Crítico", f"{critical_wl:.1f} nm", status)
                             
-                            # Verificação do padrão de referência S2
                             if 10.7 <= uva_pf_final <= 14.7:
                                 st.success("✅ Resultado dentro da faixa do padrão de referência S2")
                             else:
@@ -508,10 +479,8 @@ if page == "ISO 24443 Completo":
                 st.metric("Dose de Exposição", f"{results['dose']:.2f} J/cm²")
                 st.metric("λ Crítico", f"{results['critical_wavelength']:.1f} nm")
             
-            # Gráficos
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
             
-            # Gráfico 1: Absorbância
             ax1.plot(results['dados_pre']['Comprimento de Onda'], 
                     results['dados_pre']['A0i(λ)'], 
                     label='Absorbância Inicial (SPF)', linewidth=2, color='blue')
@@ -528,7 +497,6 @@ if page == "ISO 24443 Completo":
             ax1.grid(True, alpha=0.3)
             ax1.set_xlim(290, 400)
             
-            # Gráfico 2: Espectros de referência
             ax2.plot(wavelengths, erythema_spectrum, label='Eritema (E(λ))', color='orange')
             ax2.plot(wavelengths, ppd_spectrum, label='PPD (P(λ))', color='purple')
             ax2.set_xlabel('Comprimento de Onda (nm)')
@@ -540,7 +508,6 @@ if page == "ISO 24443 Completo":
             
             st.pyplot(fig)
             
-            # Relatório em formato de tabela
             st.subheader("📋 Relatório de Análise")
             report_data = {
                 'Parâmetro': ['SPF in vitro', 'SPF in vivo', 'SPF ajustado', 'Coeficiente C', 
@@ -553,7 +520,7 @@ if page == "ISO 24443 Completo":
                           '✅', '✅', 
                           '✅' if 0.8 <= results['C_value'] <= 1.6 else '⚠️',
                           '✅', 
-                          '✅' if 10.7 <= results['uva_pf_final'] <= 14.7 else '⚠️',
+                          '✅' if 10.7 <= results['uva_pf_f极'] <= 14.7 else '⚠️',
                           '✅', 
                           '✅' if results['critical_wavelength'] >= 370 else '⚠️']
             }
@@ -561,9 +528,8 @@ if page == "ISO 24443 Completo":
             report_df = pd.DataFrame(report_data)
             st.table(report_df)
             
-            # Botão para salvar resultados
             if st.button("💾 Salvar Resultados"):
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                timestamp = datetime.now().strftime("%Y%m%d_%H%极%S")
                 st.session_state.analysis_history.append({
                     'timestamp': timestamp,
                     'results': results
@@ -592,7 +558,6 @@ elif page == "Validação de Dados":
                 if is_valid:
                     st.success(f"✅ {validation_msg}")
                     
-                    # Análise de faixa espectral
                     min_wl = df_val['Comprimento de Onda'].min()
                     max_wl = df_val['Comprimento de Onda'].max()
                     
@@ -605,7 +570,6 @@ elif page == "Validação de Dados":
                         coverage = "✅ Completo" if min_wl <= 320 and max_wl >= 400 else "⚠️ Incompleto"
                         st.metric("Cobertura UVA", coverage)
                     
-                    # Estatísticas básicas
                     st.subheader("📊 Estatísticas dos Dados")
                     for col in ['P(λ)', 'I(λ)', 'Ai(λ)', 'A0i(λ)']:
                         if col in df_val.columns:
@@ -619,10 +583,8 @@ elif page == "Validação de Dados":
     with tab2:
         st.subheader("Espectros de Referência - Anexo C")
         
-        # Tabela com valores de referência
         st.info("Valores de espectro de referência conforme Anexo C da norma ISO 24443:2011")
         
-        # Criar dataframe com alguns valores exemplares
         sample_wavelengths = [290, 300, 310, 320, 330, 340, 350, 360, 370, 380, 390, 400]
         sample_data = {
             'λ (nm)': sample_wavelengths,
@@ -636,7 +598,6 @@ elif page == "Validação de Dados":
             'E(λ) Eritema': '{:.6f}'
         }))
         
-        # Gráfico dos espectros
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.plot(wavelengths, erythema_spectrum, label='Espectro de Eritema (E(λ))', linewidth=2, color='red')
         ax.plot(wavelengths, ppd_spectrum, label='Espectro PPD (P(λ))', linewidth=2, color='blue')
