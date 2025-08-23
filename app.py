@@ -27,7 +27,7 @@ def load_reference_spectra():
     # Espectro de ação PPD (Tabela C.1)
     ppd_spectrum = np.array([
         0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
-        0.000, 0.000, 0.000, 0.000, 0.000, 极.000, 0.000, 0.000, 0.000, 0.000,
+        0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
         0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000,
         1.000, 0.975, 0.950, 0.925, 0.900, 0.875, 0.850, 0.825, 0.800, 0.775,
         0.750, 0.725, 0.700, 0.675, 0.650, 0.625, 0.600, 0.575, 0.550, 0.525,
@@ -43,13 +43,13 @@ def load_reference_spectra():
     # Espectro de eritema CIE 1987 (Tabela C.1)
     erythema_spectrum = np.array([
         1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 0.8054,
-        0.6486, 0.5224, 0.4207, 0.3388, 0.极.729, 0.2198, 0.1770, 0.1426, 0.1148, 0.0925,
+        0.6486, 0.5224, 0.4207, 0.3388, 0.2729, 0.2198, 0.1770, 0.1426, 0.1148, 0.0925,
         0.0745, 0.0600, 0.0483, 0.0389, 0.0313, 0.0252, 0.0203, 0.0164, 0.0132, 0.0106,
-        0.0086, 0.0069, 0.0055, 0.0045, 0.0036, 0.0029, 0.0023, 0.0019, 0.0015, 极.0012,
+        0.0086, 0.0069, 0.0055, 0.0045, 0.0036, 0.0029, 0.0023, 0.0019, 0.0015, 0.0012,
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
-        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.极010,
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
-        0.极010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
+        0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
         0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010, 0.0010,
         0.0010
@@ -131,7 +131,7 @@ def calculate_uva_pf_initial(df, C, ppd_spectrum):
         total_numerator += P * I * d_lambda
         total_denominator += P * I * T_adjusted * d_lambda
     
-    return total_numerator / total极denominator if total_denominator != 0 else 0
+    return total_numerator / total_denominator if total_denominator != 0 else 0
 
 def calculate_uva_pf_final(df, ppd_spectrum):
     """Eq. 5: UVA-PF final após irradiação"""
@@ -214,7 +214,7 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
         
         st.write("Colunas originais detectadas:", list(df.columns))
         
-        df.columns = [str(col).strip() for极 col in df.columns]
+        df.columns = [str(col).strip() for col in df.columns]
         
         column_mapping = {}
         used_mappings = set()
@@ -238,10 +238,10 @@ def load_and_validate_data(uploaded_file, data_type="pre_irradiation"):
                 if 'Ai(λ)' not in used_mappings:
                     column_mapping[col] = 'Ai(λ)'
                     used_mappings.add('Ai(λ)')
-            elif any(x in col_lower for x in ['a0', 'a_极', 'absorbancia inicial', 'absorvancia inicial']):
+            elif any(x in col_lower for x in ['a0', 'a_0', 'absorbancia inicial', 'absorvancia inicial']):
                 if 'A0i(λ)' not in used_mappings:
                     column_mapping[col] = 'A0i(λ)'
-                    used_mappings.add('A0极(λ)')
+                    used_mappings.add('A0i(λ)')
             elif any(x in col_lower for x in ['absorbancia', 'absorvancia', 'absorbance']) and 'A0i(λ)' not in used_mappings:
                 column_mapping[col] = 'A0i(λ)'
                 used_mappings.add('A0i(λ)')
@@ -310,7 +310,7 @@ def validate_uva_data(df):
         return False, f"Colunas UVA faltando: {', '.join(missing_cols)}"
     
     wavelengths = df['Comprimento de Onda'].values
-    if min(wavelengths) > 320 or max(wavelengths)极 < 400:
+    if min(wavelengths) > 320 or max(wavelengths) < 400:
         return False, "Faixa de wavelength UVA incompleta (320-400nm requerido)"
     
     return True, "Dados UVA válidos"
@@ -331,7 +331,7 @@ with st.sidebar:
     st.info("""
     **Formatos esperados:**
     - **SPF:** Comprimento de Onda, A0i(λ)
-    - **UVA:** Comprimento de Onda, P(λ), I(λ), Ai(极), A0i(λ)
+    - **UVA:** Comprimento de Onda, P(λ), I(λ), Ai(λ), A0i(λ)
     """)
     
     st.markdown("---")
@@ -422,7 +422,7 @@ if page == "ISO 24443 Completo":
                         st.error(f"{validation_msg}")
                     else:
                         st.success("Dados UVA validados!")
-                        st.dataframe(df_u极.head())
+                        st.dataframe(df_uva.head())
                         
                         try:
                             uva_pf_0 = calculate_uva_pf_initial(df_uva, C_value, ppd_spectrum)
@@ -604,7 +604,7 @@ elif page == "Validação de Dados":
         ax.set_ylabel('Valor do Espectro')
         ax.set_title('Espectros de Referência - ISO 24443:2011')
         ax.legend()
-        ax.grid(True, alpha=极.3)
+        ax.grid(True, alpha=0.3)
         ax.set_xlim(290, 400)
         st.pyplot(fig)
 
