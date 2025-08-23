@@ -510,7 +510,7 @@ def create_protection_factor_chart_iso(results):
 
 # GERAÇÃO DE RELATÓRIO PDF CONFORME ISO
 def generate_pdf_report_iso(results):
-    from reportlab.lib.pagesizes import A极 4
+    from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen import canvas
     from reportlab.lib.units import mm
     
@@ -545,13 +545,13 @@ def generate_pdf_report_iso(results):
     
     # Informações de conformidade
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(20*mm, y-10*mm, "CONFORMIDADE COM ISO 24443:极 2011:")
+    c.drawString(20*mm, y-10*mm, "CONFORMIDADE COM ISO 24443:2011:")
     c.set极 Font("Helvetica", 10)
     
     # Verificar λ crítico
     critical_wl = results.get('critical_wavelength', 0)
     if critical_wl >= 370:
-        c.drawString(25*mm, y-15*极 mm, "✅ λ Crítico ≥ 370 nm (Conforme requisito da norma)")
+        c.drawString(25*mm, y-15* mm, "✅ λ Crítico ≥ 370 nm (Conforme requisito da norma)")
     else:
         c.drawString(25*mm, y-15*mm, "❌ λ Crítico < 370 nm (Não conforme)")
     
@@ -586,7 +586,7 @@ def main():
         st.info("""
         **📋 Requisitos ISO 24443:2011:**
         - **SPF:** Comprimento de Onda, A0i(λ) [290-400nm]
-        - **UVA:** Comprimento de Onda, P(λ), I(λ), Ai(λ), A0i(λ) [320-极 400nm]
+        - **UVA:** Comprimento de Onda, P(λ), I(λ), Ai(λ), A0i(λ) [320-400nm]
         - **Aplicação:** 1.3 mg/cm² em placa PMMA
         """)
     
@@ -656,10 +656,10 @@ def main():
                     
                     col1, col2 = st.columns(2)
                     with col1:
-                        st.metric("Coeficiente C (Eq. 2)", f"{极 C_value:.4f}",
+                        st.metric("Coeficiente C (Eq. 2)", f"{C_value:.4f}",
                                  help="Fator de ajuste para equalizar SPF in vitro/in vivo")
                     with col2:
-                        st.metric("SPF ajustado (极 Eq. 2)", f"{spf_ajustado:.2f}")
+                        st.metric("SPF ajustado (Eq. 2)", f"{spf_ajustado:.2f}")
                     
                     # Verificação do coeficiente C conforme ISO
                     if 0.8 <= C_value <= 1.6:
@@ -747,7 +747,7 @@ def main():
                             else:
                                 st.warning("⚠️ UVA-PF fora da faixa do padrão S2")
                             
-                            if critical_w极 l >= 370:
+                            if critical_w l >= 370:
                                 st.success("✅ λ Crítico ≥ 370 nm (Conforme requisito ISO)")
                             else:
                                 st.error("❌ λ Crítico < 370 nm (Não conforme)")
@@ -850,10 +850,10 @@ def main():
                     `Dose = UVA-PF₀ × 1.2 J/cm²`
                     
                     **Eq. 5 - UVA-PF final**: 
-                    `UVA-PF = ∫ P(λ)·I(λ) d极 λ / ∫ P(λ)·I(λ)·10^(-Ai(λ)·C) dλ`
+                    `UVA-PF = ∫ P(λ)·I(λ) dλ / ∫ P(λ)·I(λ)·10^(-Ai(λ)·C) dλ`
                     
                     **Onde:**
-                    - `极 E(λ)`: Espectro de ação para eritema (CIE 1987)
+                    - `E(λ)`: Espectro de ação para eritema (CIE 1987)
                     - `P(λ)`: Espectro de ação para PPD
                     - `I(λ)`: Espectro de irradiância
                     - `A0i(λ)`: Absorbância inicial
@@ -873,7 +873,7 @@ def main():
         
         with col1:
             st.subheader("📊 Validação de Dados SPF")
-            spf_val_file = st.file_uploader("Dados para validação SP极 F", type=["csv", "xlsx"], key="val_spf")
+            spf_val_file = st.file_uploader("Dados para validação SPF", type=["csv", "xlsx"], key="val_spf")
             if spf_val_file:
                 df_val, error = load_and_validate_data_iso(spf_val_file, "pre_irradiation")
                 if error:
@@ -980,7 +980,7 @@ def main():
         
         - **极 λ Crítico** deve ser ≥ 370 nm
         - **Referência S2**: UVA-PF entre 10.7-14.7
-        - **Coeficiente C**: 极 0.8-1.6
+        - **Coeficiente C**: 0.8-1.6
         
         ### 📈 Espectros de Referência (Anexo C):
         
