@@ -546,7 +546,7 @@ def generate_pdf_report_iso(results):
     # Informações de conformidade
     c.setFont("Helvetica-Bold", 12)
     c.drawString(20*mm, y-10*mm, "CONFORMIDADE COM ISO 24443:2011:")
-    c.set极 Font("Helvetica", 10)
+    c.setFont("Helvetica", 10)
     
     # Verificar λ crítico
     critical_wl = results.get('critical_wavelength', 0)
