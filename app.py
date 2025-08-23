@@ -156,7 +156,7 @@ def calculate_adjusted_spf_iso(df, C, erythema_spectrum, uv_ssr_spectrum):
         if wavelength < 290 or wavelength > 400: continue
         
         E = get_spectrum_value(wavelength, erythema_spectrum)
-        I = get_spectrum_value(wavelength, uv_ssr_极 spectrum)
+        I = get_spectrum_value(wavelength, uv_ssr_spectrum)
         A0 = row['A0i(λ)']
         T_adjusted = 10 ** (-A0 * C)
         
